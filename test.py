@@ -23,19 +23,33 @@ def showImage(RefDs):
     imagesTemp.draw()
     imagesTemp.get_tk_widget().pack()
 
+def beforeImage():
+    num = int(nextNum.cget("text"))
+    if num > 0:
+        num = num-1
+        accessImages(num)
+        nextNum.config(text=num)
+        
+
+
+#next image
+def nextImage():
+    num = int(nextNum.cget("text"))
+    if num < len(lstFilesDCM):
+        num = num+1
+        accessImages(num)
+        nextNum.config(text=num)
+        
+    
 
 #problema con la variable LstFileDCM
-def accessImages():
-    num = int(inext.cget("text"))
-    if num < len(lstFilesDCM):
-        inext.config(text=num+1)
-
+def accessImages(num):
     RefDs = pydicom.dcmread(lstFilesDCM[num])
     output ="En construccion...\n"
     #deberia poder hacer esto mejor porque puedo sacar los nombres de todos los atributos del header que tengo #20
     try:
         #output = output + "Tipos de Datos: " + str(RefDs.dir("")) + "\n" #muestra todos los datos que hay en el header por nombre
-        output = output + "Imagen numero: " + str(num) + "\n"
+        output = output + "Imagen numero: " + str(num+1) + "\n"
         output = output + "Nombre: " + str(RefDs.PatientName) + "\n"
         output = output + "PatientID: " + str(RefDs.PatientID) + "\n"
         output = output + "Columns: " + str(RefDs.Columns) + "\n"
@@ -62,8 +76,6 @@ def prepareDicoms(pathDicom):
                 lstFilesDCM.append(os.path.join(dirName,filename))
     images.delete('1.0', 'end')
     images.insert('end', str(len(lstFilesDCM)) + " imagenes.")
-    accessImages()
-
 
 def folderFinder():
     folder = filedialog.askdirectory()
@@ -89,10 +101,10 @@ frameL = tk.Frame(root, width=350, height=500)
 frameR = tk.Frame(root, width=350, height=500)
 
 #frameR
-inext = tk.Label(frameL, text="0")
+nextNum = tk.Label(frameL, text="0")
 folderSelector = tk.Button(frameL, text="Seleccionar carpeta", command=folderFinder)
-next = tk.Button(frameL, text="Siguiente",command= accessImages)
-before = tk.Button(frameL, text="Anterior")
+inext = tk.Button(frameL, text="Siguiente",command= nextImage)
+ibefore = tk.Button(frameL, text="Anterior", command=beforeImage)
 histogram = tk.Button(frameL, text="Histograma", command= histogram)
 fileSelector = tk.Button(frameL, text="Seleccionar imagen")
 images = tk.Text(frameL, height=20, width=50)
@@ -108,9 +120,9 @@ folderSelector.pack(padx=2,pady= 2)
 fileSelector.pack(padx=2,pady=2)
 images.pack(padx=5,pady=5)
 histogram.pack(padx=5, pady=5,side='left')
+nextNum.pack(padx=5,pady=5,side='right')
 inext.pack(padx=2, side='right')
-next.pack(padx=5, pady=5, side='right')
-before.pack(padx=5, pady=5, side='right')
+ibefore.pack(padx=5, pady=5, side='right')
 
 #pack frameR
 frameR.pack(side = 'right')
