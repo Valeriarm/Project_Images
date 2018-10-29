@@ -7,7 +7,7 @@ import numpy as np
 #kernel de 3x3
 #kerne = np.ones((3,3)) #filtro mediana - promedio
 #l = 1.0/9.0
-"""
+
 #kernel gaussiano 7x7
 kerne = np.array([[0.000036,0.000363,0.001446,0.002291,0.001446,0.000363,0.000036],
                 [0.000363,0.003676,0.014662,0.023226,0.014662,0.003676,0.000363],
@@ -17,13 +17,15 @@ kerne = np.array([[0.000036,0.000363,0.001446,0.002291,0.001446,0.000363,0.00003
                 [0.000363,0.003676,0.014662,0.023226,0.014662,0.003676,0.000363],
                 [0.000036,0.000363,0.001446,0.002291,0.001446,0.000363,0.000036]])
 l=1
-"""
+
 #kernel gaussiano 3x3
+"""
 kerne = np.array([[0.110533,0.111399,0.110533],
                 [0.111399,0.112271,0.111399],
                 [0.110533,0.111399,0.110533]])
 l=1
-vecinos=1 #cantidad de vecinos
+"""
+vecinos=3 #cantidad de vecinos
 #leer imagen
 original = io.imread("lena_gray.png")
 """
@@ -54,6 +56,7 @@ for i in range (vecinos,row-vecinos):
         firstj = j - vecinos  
         endi = i + vecinos + 1
         endj = j + vecinos + 1
+        print(str(firsti)+str(firstj)+str(endi)+str(endj)+"neighbors"+str(vecinos))
         nueva [m,n] = np.sum(image[firsti:endi,firstj:endj] * kerne[:,:])
         n=n+1
         """
