@@ -1,9 +1,51 @@
 import tkinter as tk
 from tkinter import ttk
+import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-import filters
+import libFilters
+
+#filterName["values"] = []
+#KernelSize["values"] = []
+sigma = []
+kernels = [] #heave
+
+def uploadKernels(filterName, kernelSize):
+    div = 10
+    archivo = open("kernel.txt","r")
+    matrix = ''
+    for line in archivo.readlines():
+        fvalues = list(filterName["values"])
+        kvalues = list(kernelSize["values"])
+        if(line == "*\n"):
+            if(matrix != ''):
+                matrix = matrix[:-2]
+                print("kernel")
+                kernels.append(np.mat(matrix) * (1/div))
+            matrix = ''
+        elif(line.find("S") != -1):
+            words = line.split(" ")
+            #la primera es nombre, vecindad y sigma
+            filterName["values"]=fvalues + [words[0]]
+            kernelSize["values"]=kvalues + [words[1]]
+            sigma.append(words[2][1:])
+            div = float(words[3][:-1])
+        else:
+            items = line.split("\t")
+            items[len(items)-1] = items[len(items)-1][:-1]#elimina el salto de linea
+            for i in range(0,len(items)):
+                matrix = matrix + items[i] + ' '
+            matrix=matrix[:-1]
+            matrix = matrix + '; ' 
+    matrix = matrix[:-2]
+    print("kernel")
+    kernels.append(np.mat(matrix) * (1/div))
+    #convierte la matrix a una numpy array
+    print(filterName["values"])
+    print(kernelSize["values"])
+    print(len(kernels))
+    archivo.close()
 
 def start(refDs,num,root):
     filters = tk.Toplevel(root)
@@ -19,9 +61,8 @@ def start(refDs,num,root):
     numImage = tk.Label(frameTL,text="Imagen numero: "+str(num))
     filterName = ttk.Combobox(frameTL, state="readonly")
     kernelSize = ttk.Combobox(frameTL, state="readonly")
-    apply = tk.Button(frameTL, text="Aplicar", command =lambda: applyFilter(frameBR, refDs, filterName.get(),kernelSize.get()))
-    filterName["values"]=["Average","Gaussian"]
-    kernelSize["values"]=["3x3","7x7"]
+    apply = tk.Button(frameTL, text="Aplicar", command =lambda: applyFilter(frameBR, refDs, kernels[filterName.current()]))
+    uploadKernels(filterName, kernelSize)
     #frameTR
     info = tk.Text(frameTR, height=11, width=50)
     #pack frameT
@@ -44,7 +85,7 @@ def start(refDs,num,root):
     frameBR.pack(side='right')
     showImage(refDs,frameBL)
     showImage(refDs,frameBR)
-    
+
 def showInfo(refDs,num, info):
     output ="En construccion...\n"
     try:
@@ -119,7 +160,7 @@ def showImageFiltered(image,frame):
     imagesTemp.draw()
     imagesTemp.get_tk_widget().pack()
 
-def applyFilter(frame,refDs,filterName,kernelSize):
-    name = filterName + kernelSize
-    newImage = filters.applyConvolution(refDs.pixel_array,name)
+def applyFilter(frame,refDs,kernel):
+    print(len(kernel))
+    newImage = libFilters.applyConvolution(refDs.pixel_array,kernel)
     showImageFiltered(newImage,frame)

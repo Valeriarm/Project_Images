@@ -6,9 +6,9 @@ dicomImage = []
 
 VALUES = 65536
 NEIGHBORS = 1
-KERNELGAUSS3 = np.array([[0.110533,0.111399,0.110533],
-                        [0.111399,0.112271,0.111399],
-                        [0.110533,0.111399,0.110533]])
+KERNELGAUSS3 = np.array([[0, 0, 0],
+                        [0, 0.367879, 0.164169],
+                        [0, 0.164169, 0.073262]])
 
 KERNELGAUSS7 = np.array([[0.000036,0.000363,0.001446,0.002291,0.001446,0.000363,0.000036],
                 [0.000363,0.003676,0.014662,0.023226,0.014662,0.003676,0.000363],
@@ -33,8 +33,8 @@ def averageKernel(num):
     kernel = kerne * l
     return kernel
 
-def applyConvolution(original,kernelName):
-    kernel = getKernel(kernelName)
+def applyConvolution(original,kernel):
+    #kernel = getKernel(kernelName)
     NEIGHBORS = int((len(kernel)/2)-0.5)
     #print(str(isinstance(NEIGHBORS,int)))
     #definir la cantidad de vecinos respecto al kernel escogido
@@ -60,21 +60,3 @@ def applyConvolution(original,kernelName):
         n=0
         m=m+1
     return newImage
-
-# kernel default gaussiano 7x7
-def getKernel(kernelName):
-    if kernelName == 'Gaussian3x3':
-        kernel = KERNELGAUSS3
-        return kernel
-    elif kernelName == 'Gaussian7x7':
-        kernel = KERNELGAUSS7
-        return kernel
-    elif kernelName == 'Average3x3':
-        kernel = averageKernel(3)
-        return kernel
-    elif kernelName == 'Average7x7':
-        kernel = averageKernel(7)
-        return kernel
-    else:
-        kernel = KERNELGAUSS7
-        return kernel

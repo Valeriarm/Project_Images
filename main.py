@@ -7,7 +7,7 @@ from matplotlib import pyplot as plt
 from tkinter import filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
-import filters
+import libFilters
 import windowFilters
 
 VALUES = 65536
@@ -114,7 +114,7 @@ def folderFinder():
 def setHistogram():
     num = int(nextNum.cget("text"))
     refDs = pydicom.dcmread(lstFilesDCM[num])
-    histogram = filters.histogram(refDs)
+    histogram = libFilters.histogram(refDs)
     plt.plot(histogram)
     plt.show()
 
