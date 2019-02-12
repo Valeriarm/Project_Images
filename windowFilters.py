@@ -6,10 +6,17 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 import libFilters
 
-#filterName["values"] = []
-#KernelSize["values"] = []
 sigma = []
 kernels = [] #heave
+
+SOBELX = np.array([[-1, 0, 1],
+                    [-2, 0, 2],
+                    [-1, 0, 1]])
+
+SOBELY = np.array([[-1, -2, -1],
+                    [0, 0, 0],
+                    [1, 2, 1]]) 
+filtered = np.ones((512,512))
 
 def uploadKernels(filterName, kernelSize):
     div = 10
@@ -21,7 +28,7 @@ def uploadKernels(filterName, kernelSize):
         if(line == "*\n"):
             if(matrix != ''):
                 matrix = matrix[:-2]
-                print("kernel")
+                #print("kernel")
                 kernels.append(np.mat(matrix) * (1/div))
             matrix = ''
         elif(line.find("S") != -1):
@@ -39,98 +46,62 @@ def uploadKernels(filterName, kernelSize):
             matrix=matrix[:-1]
             matrix = matrix + '; ' 
     matrix = matrix[:-2]
-    print("kernel")
     kernels.append(np.mat(matrix) * (1/div))
     #convierte la matrix a una numpy array
-    print(filterName["values"])
-    print(kernelSize["values"])
-    print(len(kernels))
     archivo.close()
 
 def start(refDs,num,root):
     filters = tk.Toplevel(root)
     #frame
-    frameT = tk.Frame(filters,width=300,height=500)
-    frameTL = tk.Frame(frameT, width=150, height=500)
-    frameTR = tk.Frame(frameT,width=150,height=500)
-    frameB = tk.Frame(filters,width=300,height=500)
-    frameBL = tk.Frame(frameB, width=150, height=500)
-    frameBR = tk.Frame(frameB, width=150,height=500)
-    #frameTL
-    title = tk.Label(frameTL, text="Filtros")
-    numImage = tk.Label(frameTL,text="Imagen numero: "+str(num))
-    filterName = ttk.Combobox(frameTL, state="readonly")
-    kernelSize = ttk.Combobox(frameTL, state="readonly")
-    apply = tk.Button(frameTL, text="Aplicar", command =lambda: applyFilter(frameBR, refDs, kernels[filterName.current()]))
+    frameT = tk.Frame(filters,width=250,height=400)
+    frameTBorder = tk.Frame(frameT, width=100, height=100)
+    frameTPrepro = tk.Frame(frameT, width=100, height=100, highlightcolor="black", highlightthickness=1)
+    frameTFilter = tk.Frame(frameT,width=100,height=100)
+    frameB = tk.Frame(filters,width=250,height=400)
+    frameBL = tk.Frame(frameB, width=100, height=400)
+    frameBR = tk.Frame(frameB, width=100,height=400)
+    #frameBorder
+    titleBorder = tk.Label(frameTBorder, text="Borderline")
+    comboBorder = ttk.Combobox(frameTBorder, state="readonly")
+    comboBorder["values"]=["ignorar","reflejados","copiar valores"]
+    #frameTPrepro
+    title = tk.Label(frameTPrepro, text="Preprocessing")
+    numImage = tk.Label(frameTPrepro,text="Imagen numero: "+str(num))
+    filterName = ttk.Combobox(frameTPrepro, state="readonly")
+    kernelSize = ttk.Combobox(frameTPrepro, state="readonly")
+    apply = tk.Button(frameTPrepro, text="Aplicar Prepro", command =lambda: applyFilter(frameBR, refDs, kernels[filterName.current()],comboBorder.get()))
     uploadKernels(filterName, kernelSize)
-    #frameTR
-    info = tk.Text(frameTR, height=11, width=50)
-    #pack frameT
+    #frameTFilter
+    titleTFilter = tk.Label(frameTFilter, text="Filtros")
+    filterTFilter = ttk.Combobox(frameTFilter, state="readonly")
+    applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: sobel(comboBorder.get(),frameBR))
+    filterTFilter["values"] =["Sobel"]
+    #pack ############################
     frameT.pack(side='top')
-    #
-    frameTL.pack(side='left')
+    #FrameBorder
+    frameTBorder.pack(side='left', padx=5, pady=5)
+    titleBorder.pack(side='top', padx=5,pady=5)
+    comboBorder.pack(padx=5,pady=5)
+    #frameTPrepro
+    frameTPrepro.pack(side='left', padx=5, pady=5)
     title.pack(side='top',padx=5,pady=5)
     numImage.pack(padx=5,pady=5)
     filterName.pack(padx=5,pady=5)
     kernelSize.pack(padx=5,pady=5)
     apply.pack(padx=5,pady=5)
-    #
-    frameTR.pack(side='right')
-    info.pack(padx=5,pady=5)
-    showInfo(refDs,num, info)
+    #frameTFilter
+    frameTFilter.pack(side='left', padx=5, pady=5)
+    titleTFilter.pack(side = 'top', padx=5, pady=5)
+    filterTFilter.pack(padx=5,pady=5)
+    applyF.pack(padx=5,pady=5)
     #pack frameB
     frameB.pack(side='bottom')
-    #
+    #frameB
     frameBL.pack(side = 'left')
-    frameBR.pack(side='right')
+    frameBR.pack(side='left')
+    #
     showImage(refDs,frameBL)
     showImage(refDs,frameBR)
-
-def showInfo(refDs,num, info):
-    output ="En construccion...\n"
-    try:
-        output = "Imagen numero: " + str(num+1) + "\n"
-        output = output + "Nombre: " + str(refDs.PatientName) + "\n"
-    except:
-        output = output + "No hay nombre de paciente" + "\n"
-    try:
-        output = output + "PatientID: " + str(refDs.PatientID) + "\n"
-    except:
-        output = output + "No hay id del paciente\n"
-    try:
-        output = output + "Columns: " + str(refDs.Columns) + "\n"
-    except:
-        output = output + "No hay info de columnas\n"
-    try:
-        output = output + "Rows: " + str(refDs.Rows) + "\n"
-    except:
-        output = output + "No hay info de filas\n"
-    try:
-        output = output + "Samples per pixel: " + str(refDs.SamplesPerPixel) + "\n"
-    except:
-        output = output + "No hay info de muestras por pixel.\n"
-    try:
-        output = output + "Series Number: " + str(refDs.SeriesNumber) + "\n"
-    except:
-        output = output + "No hay info del numero de serie.\n"
-    try:
-        output = output + "bitsAllocated: " + str(refDs.BitsAllocated) + "\n"
-    except:
-        output = output + "No hay info de bitsAllocated.\n"
-    try:
-        output = output + "Manufacturer: " + str(refDs.Manufacturer) + "\n"
-    except:
-        output = output + "No hay manufacturer.\n"
-    try:
-        output = output + "Largest: " + str(refDs.LargestImagePixelValue) + "\n"
-    except:
-        output = output + "No hay info mayor valor de pixel.\n"
-    try:
-        output = output + "Smallest: " + str(refDs.SmallestImagePixelValue) + "\n"
-    except:
-        output = output + "No hay info menor valor de pixel.\n"
-    info.delete('1.0', 'end')
-    info.insert('end', output)
 
 def showImage(RefDs,frame):
     #print(str(image.winfo_children()))#muestra que hay en el frame image
@@ -154,13 +125,34 @@ def showImageFiltered(image,frame):
     #crea el elemento que va a contener la imagen
     f = plt.Figure()
     a = f.add_subplot(111)
-    print(image.shape)
     a.imshow(image, cmap=plt.cm.gray)
     imagesTemp = FigureCanvasTkAgg(f, master=frame)
     imagesTemp.draw()
     imagesTemp.get_tk_widget().pack()
 
-def applyFilter(frame,refDs,kernel):
-    print(len(kernel))
-    newImage = libFilters.applyConvolution(refDs.pixel_array,kernel)
+def applyFilter(frame,refDs,kernel,borderline):
+    global filtered
+    newImage = libFilters.applyConvolution(refDs.pixel_array,kernel,borderline)
+    newImage = newImage.astype(np.int64)#
+    filtered = newImage
     showImageFiltered(newImage,frame)
+    histogram = libFilters.histogram(refDs.pixel_array)
+    newHistogram = libFilters.histogram(newImage)
+    plt.clf()
+    plt.title("filtrada")
+    plt.plot(histogram)
+    plt.plot(newHistogram)
+    plt.show()
+
+def sobel(borderline,frame):
+    global filtered
+    print(filtered)
+    gx = libFilters.applyConvolution(filtered, SOBELX, borderline)
+    gy = libFilters.applyConvolution(filtered, SOBELY, borderline)
+    g = np.absolute(gx) + np.absolute(gy)
+    showImageFiltered(g,frame)
+    gInt = g.astype(np.int64)#
+    hist = libFilters.histogram(gInt)
+    plt.clf()
+    plt.plot(hist)
+    plt.show()

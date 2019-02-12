@@ -114,7 +114,7 @@ def folderFinder():
 def setHistogram():
     num = int(nextNum.cget("text"))
     refDs = pydicom.dcmread(lstFilesDCM[num])
-    histogram = libFilters.histogram(refDs)
+    histogram = libFilters.histogram(refDs.pixel_array)
     plt.plot(histogram)
     plt.show()
 
@@ -131,8 +131,8 @@ def openFilterWindow():
 root = tk.Tk()
 
 #frames
-frameL = tk.Frame(root, width=350, height=500)
-frameR = tk.Frame(root, width=350, height=500)
+frameL = tk.Frame(root, width = 50, height = 50)
+frameR = tk.Frame(root, width = 50, height = 50)
 
 #frameL
 nextNum = tk.Label(frameL, text="0")

@@ -5,35 +5,24 @@ from skimage import io
 dicomImage = []
 
 VALUES = 65536
-NEIGHBORS = 1
-KERNELGAUSS3 = np.array([[0, 0, 0],
-                        [0, 0.367879, 0.164169],
-                        [0, 0.164169, 0.073262]])
+NEIGHBORS = 1      
 
-KERNELGAUSS7 = np.array([[0.000036,0.000363,0.001446,0.002291,0.001446,0.000363,0.000036],
-                [0.000363,0.003676,0.014662,0.023226,0.014662,0.003676,0.000363],
-                [0.001446,0.014662,0.058488,0.092651,0.058488,0.014662,0.001446],
-                [0.002291,0.023226,0.092651,0.146768,0.092651,0.023226,0.002291],
-                [0.001446,0.014662,0.058488,0.092651,0.058488,0.014662,0.001446],
-                [0.000363,0.003676,0.014662,0.023226,0.014662,0.003676,0.000363],
-                [0.000036,0.000363,0.001446,0.002291,0.001446,0.000363,0.000036]])
-
-def histogram(refDs):
-    image = refDs.pixel_array
+def histogram(matrix):
+    row, column = matrix.shape
     hist = [0]*VALUES
-    for i in range (0,refDs.Columns-1):
-        for j in range(0,refDs.Rows-1):
-            index = image[i][j]
+    for i in range (0,column-1):
+        for j in range(0,row-1):
+            index = matrix[i][j]
             hist[index]+=1
     return hist
-
+'''
 def averageKernel(num):
     kerne = np.ones((num,num)) #filtro mediana - promedio
     l = 1.0/(num*num)
     kernel = kerne * l
     return kernel
-
-def applyConvolution(original,kernel):
+'''
+def applyConvolution(original,kernel,borderline):
     #kernel = getKernel(kernelName)
     NEIGHBORS = int((len(kernel)/2)-0.5)
     #print(str(isinstance(NEIGHBORS,int)))
@@ -41,8 +30,13 @@ def applyConvolution(original,kernel):
     rowO, columnO=original.shape
     #print("row"+str(rowO)+"\ncolumn"+str(columnO)+str(NEIGHBORS))
     #adiciona fila o columna a cada extremo y copia su valor correspondiente.
-    image = np.pad(original,NEIGHBORS,'symmetric')
+    image = original
+    if ( borderline == 'reflejados'):
+        image = np.pad(original,NEIGHBORS,'symmetric')
+    elif ( borderline == 'copiar valores') :
+        image = np.pad(original,NEIGHBORS, 'edge')
     row, column = image.shape
+    print (image.shape)
     #nueva imagen
     newImage = np.zeros((rowO,columnO))
     m = 0
