@@ -63,19 +63,19 @@ def start(refDs,num,root):
     #frameBorder
     titleBorder = tk.Label(frameTBorder, text="Borderline")
     comboBorder = ttk.Combobox(frameTBorder, state="readonly")
-    comboBorder["values"]=["ignorar","reflejados","copiar valores"]
+    comboBorder["values"]=["ignorar","reflejados","ceros"]
     #frameTPrepro
     title = tk.Label(frameTPrepro, text="Preprocessing")
     numImage = tk.Label(frameTPrepro,text="Imagen numero: "+str(num))
     filterName = ttk.Combobox(frameTPrepro, state="readonly")
     kernelSize = ttk.Combobox(frameTPrepro, state="readonly")
-    apply = tk.Button(frameTPrepro, text="Aplicar Prepro", command =lambda: applyFilter(frameBR, refDs, kernels[filterName.current()],comboBorder.get()))
+    apply = tk.Button(frameTPrepro, text="Aplicar Prepro", command =lambda: applyFilter(frameBR, refDs, filterName.current(),comboBorder.get()))
     uploadKernels(filterName, kernelSize)
     #frameTFilter
     titleTFilter = tk.Label(frameTFilter, text="Filtros")
     filterTFilter = ttk.Combobox(frameTFilter, state="readonly")
-    applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: sobel(comboBorder.get(),frameBR))
-    filterTFilter["values"] =["Sobel"]
+    applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(), comboBorder.get(),frameBR))
+    filterTFilter["values"] =["Sobel","Otsu"]
     #pack ############################
     frameT.pack(side='top')
     #FrameBorder
@@ -130,10 +130,21 @@ def showImageFiltered(image,frame):
     imagesTemp.draw()
     imagesTemp.get_tk_widget().pack()
 
-def applyFilter(frame,refDs,kernel,borderline):
+def applyFilter(frame,refDs,kernelNum,borderline):
     global filtered
-    newImage = libFilters.applyConvolution(refDs.pixel_array,kernel,borderline)
+    if kernelNum == 10:
+        newImage = libFilters.median(refDs.pixel_array,1,borderline)
+        #ver si si cambio
+        '''
+        r = refDs.pixel_array - newImage
+        plt.imshow(r, cmap=plt.cm.gray)
+        plt.show()
+        '''
+    else:
+        kernel = kernels[kernelNum]
+        newImage = libFilters.applyConvolution(refDs.pixel_array,kernel,borderline)
     newImage = newImage.astype(np.int64)#
+    #filtered = copy.deepcopy(newImage)
     filtered = newImage
     showImageFiltered(newImage,frame)
     histogram = libFilters.histogram(refDs.pixel_array)
@@ -144,15 +155,69 @@ def applyFilter(frame,refDs,kernel,borderline):
     plt.plot(newHistogram)
     plt.show()
 
+def wichOne (name, borderline,frame):
+    if(name == 'Sobel'):
+        sobel(borderline,frame)
+    elif(name == 'Otsu'):
+        otsu(frame)
+
 def sobel(borderline,frame):
     global filtered
-    print(filtered)
     gx = libFilters.applyConvolution(filtered, SOBELX, borderline)
     gy = libFilters.applyConvolution(filtered, SOBELY, borderline)
     g = np.absolute(gx) + np.absolute(gy)
     showImageFiltered(g,frame)
+    '''
     gInt = g.astype(np.int64)#
     hist = libFilters.histogram(gInt)
     plt.clf()
     plt.plot(hist)
     plt.show()
+    '''
+
+def otsu(frame):
+    global filtered
+    total = filtered.size
+    hist = libFilters.histogram(filtered) #histogram
+    #print (total)
+    nu = 0 # numerador u1 y u2
+    sumB = 0 #background
+    wB = 0
+    wF = 0#pesos de objeto 1 y 2 fondo y primer plano
+    threshold = 0 #valor importante 
+    varMax = 0
+    for i in range(0,60000): #imagen 1 brainDicom
+        nu += i * hist[i]
+    for i in range(0,60000):
+        wB += hist[i]
+        if (wB == 0):
+            continue
+        wF = total - wB
+        if (wF == 0): 
+            break
+        sumB += i * hist[i]
+        mB = sumB / wB
+        mF = (nu - sumB) / wF
+        #calculate between class variance
+        varBetween = wB * wF * (mB - mF) * (mB - mF)
+        if (varMax < varBetween):
+            varMax = varBetween
+            threshold = i
+    print (threshold)
+    #threshold divide entre blanco y negro
+    row, column = filtered.shape
+    for i in range(0,row):
+        for j in range(0,column):
+            if (filtered[i,j] >= threshold):
+                filtered[i,j] = 65353
+            elif( filtered[i,j] < threshold):
+                filtered[i,j] = 0
+    showImageFiltered(filtered,frame)
+    '''
+    th = filtered.astype(np.int64)#
+    hist = libFilters.histogram(th)
+    plt.clf()
+    plt.plot(th)
+    plt.show()
+    '''
+
