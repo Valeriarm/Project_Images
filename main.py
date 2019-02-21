@@ -163,7 +163,8 @@ ibefore.pack(padx=5, pady=5, side='right')
 #pack frameR
 frameR.pack(side = 'right')
 etiqueta.pack(side='top')
-#canvas.pack()
+
+
 
 #\:v/
 root.mainloop()

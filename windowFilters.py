@@ -75,6 +75,7 @@ def start(refDs,num,root):
     titleTFilter = tk.Label(frameTFilter, text="Filtros")
     filterTFilter = ttk.Combobox(frameTFilter, state="readonly")
     applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(), comboBorder.get(),frameBR))
+    cut = tk.Button(frameTFilter, text="recortar", command = lambda: cutImage(frameBL))
     filterTFilter["values"] =["Sobel","Otsu"]
     #pack ############################
     frameT.pack(side='top')
@@ -94,6 +95,7 @@ def start(refDs,num,root):
     titleTFilter.pack(side = 'top', padx=5, pady=5)
     filterTFilter.pack(padx=5,pady=5)
     applyF.pack(padx=5,pady=5)
+    cut.pack(padx=5,pady=5)
     #pack frameB
     frameB.pack(side='bottom')
     #frameB
@@ -132,28 +134,22 @@ def showImageFiltered(image,frame):
 
 def applyFilter(frame,refDs,kernelNum,borderline):
     global filtered
-    if kernelNum == 10:
+    if kernelNum == 2:
         newImage = libFilters.median(refDs.pixel_array,1,borderline)
-        #ver si si cambio
+        #ver si si cambio resta de original y filtrada de media
         '''
         r = refDs.pixel_array - newImage
         plt.imshow(r, cmap=plt.cm.gray)
         plt.show()
         '''
+        
     else:
         kernel = kernels[kernelNum]
         newImage = libFilters.applyConvolution(refDs.pixel_array,kernel,borderline)
     newImage = newImage.astype(np.int64)#
-    #filtered = copy.deepcopy(newImage)
+    #filtered = copy.deepcopy(newImage) 
     filtered = newImage
     showImageFiltered(newImage,frame)
-    histogram = libFilters.histogram(refDs.pixel_array)
-    newHistogram = libFilters.histogram(newImage)
-    plt.clf()
-    plt.title("filtrada")
-    plt.plot(histogram)
-    plt.plot(newHistogram)
-    plt.show()
 
 def wichOne (name, borderline,frame):
     if(name == 'Sobel'):
@@ -166,29 +162,26 @@ def sobel(borderline,frame):
     gx = libFilters.applyConvolution(filtered, SOBELX, borderline)
     gy = libFilters.applyConvolution(filtered, SOBELY, borderline)
     g = np.absolute(gx) + np.absolute(gy)
+    g = g.astype(np.int64)#
+    filtered = np.copy(g)
+
     showImageFiltered(g,frame)
-    '''
-    gInt = g.astype(np.int64)#
-    hist = libFilters.histogram(gInt)
-    plt.clf()
-    plt.plot(hist)
-    plt.show()
-    '''
+    
 
 def otsu(frame):
     global filtered
     total = filtered.size
     hist = libFilters.histogram(filtered) #histogram
-    #print (total)
-    nu = 0 # numerador u1 y u2
-    sumB = 0 #background
+    #
+    nu = 0
+    sumB = 0
     wB = 0
-    wF = 0#pesos de objeto 1 y 2 fondo y primer plano
-    threshold = 0 #valor importante 
+    wF = 0
+    threshold = 0
     varMax = 0
-    for i in range(0,60000): #imagen 1 brainDicom
+    for i in range(0,np.amax(filtered)): #imagen 1 brainDicom
         nu += i * hist[i]
-    for i in range(0,60000):
+    for i in range(0,65000):
         wB += hist[i]
         if (wB == 0):
             continue
@@ -212,6 +205,7 @@ def otsu(frame):
                 filtered[i,j] = 65353
             elif( filtered[i,j] < threshold):
                 filtered[i,j] = 0
+    filtered = np.copy(filtered)
     showImageFiltered(filtered,frame)
     '''
     th = filtered.astype(np.int64)#
@@ -221,3 +215,24 @@ def otsu(frame):
     plt.show()
     '''
 
+def cutImage(frame):
+    global filtered
+    min = 512
+    row, column = filtered.shape
+    x =0
+    y = 0
+    max = 0
+    min = 65535
+    for i in range (1,row):
+        for j in range (1,column):
+            if( filtered[i,j] == 65353 and filtered[i-1,j] == 0):#izq
+                if ( j > max):
+                    max = j
+            if( filtered[i,j] == 0 and filtered[i-1,j] == 65353):#derecha
+                if ( j < min):
+                    print("min")
+                    min = j
+    print(min)
+    filtered[:,min]=30000
+    filtered[:,max]=30000
+    showImageFiltered(filtered,frame)

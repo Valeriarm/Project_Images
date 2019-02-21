@@ -3,6 +3,7 @@ import copy
 import math
 from matplotlib import pyplot as plt
 from skimage import io
+from numpy import linalg as LA
 
 dicomImage = []
 
@@ -11,9 +12,10 @@ NEIGHBORS = 1
 
 def histogram(matrix):
     row, column = matrix.shape
-    hist = [0]*VALUES
-    for i in range (0,column-1):
-        for j in range(0,row-1):
+    max = np.amax(matrix)
+    hist = np.zeros(max+1)#al ser resultado de una convolucion se sube el rango
+    for i in range (0,row):
+        for j in range(0,column):
             index = matrix[i][j]
             hist[index]+=1
     return hist
@@ -43,7 +45,7 @@ def applyConvolution(original,kernel,borderline):
             endi = i + NEIGHBORS + 1
             endj = j + NEIGHBORS + 1
             #print(str(firsti)+str(firstj)+str(endi)+str(endj)+"neighbors"+str(NEIGHBORS))
-            newImage [m,n] = np.sum(image[firsti:endi,firstj:endj] * kernel[:,:])
+            newImage [m,n] = np.sum(np.multiply(image[firsti:endi,firstj:endj], kernel[:,:]))
             #print ("for2")
             n=n+1
         n=0
