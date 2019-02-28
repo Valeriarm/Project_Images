@@ -69,14 +69,14 @@ def start(refDs,num,root):
     numImage = tk.Label(frameTPrepro,text="Imagen numero: "+str(num))
     filterName = ttk.Combobox(frameTPrepro, state="readonly")
     kernelSize = ttk.Combobox(frameTPrepro, state="readonly")
-    apply = tk.Button(frameTPrepro, text="Aplicar Prepro", command =lambda: applyFilter(frameBR, refDs, filterName.current(),comboBorder.get()))
+    apply = tk.Button(frameTPrepro, text="Aplicar Prepro", command =lambda: applyFilter(frameBR, refDs, filterName.current(),kernelSize.get(),comboBorder.get()))
     uploadKernels(filterName, kernelSize)
     #frameTFilter
     titleTFilter = tk.Label(frameTFilter, text="Filtros")
     filterTFilter = ttk.Combobox(frameTFilter, state="readonly")
-    applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(), comboBorder.get(),frameBR))
+    applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(),kernelSize.get(),comboBorder.get(),frameBR))
     cut = tk.Button(frameTFilter, text="recortar", command = lambda: cutImage(frameBL))
-    filterTFilter["values"] =["Sobel","Otsu"]
+    filterTFilter["values"] =["Sobel","Otsu", "OtsuParcial"]
     #pack ############################
     frameT.pack(side='top')
     #FrameBorder
@@ -114,7 +114,7 @@ def showImage(RefDs,frame):
     f = plt.Figure()
     f.legend("Titulo")
     a = f.add_subplot(111)
-    a.imshow(RefDs.pixel_array, cmap=plt.cm.gray)
+    a.imshow(RefDs, cmap=plt.cm.gray)
     imagesTemp = FigureCanvasTkAgg(f, master=frame)
     imagesTemp.draw()
     imagesTemp.get_tk_widget().pack()
@@ -132,31 +132,36 @@ def showImageFiltered(image,frame):
     imagesTemp.draw()
     imagesTemp.get_tk_widget().pack()
 
-def applyFilter(frame,refDs,kernelNum,borderline):
+def applyFilter(frame,refDs,kernelNum,kernelSize,borderline):
     global filtered
-    if kernelNum == 2:
-        newImage = libFilters.median(refDs.pixel_array,1,borderline)
+    if (kernelNum == 1 or kernelNum == 2 or kernelNum == 3 or kernelNum == 11):#mejorar esta escogencia.
+        #recuperar el tamaño del kernel correspondiente a la matrix seleccionada
+        newImage = libFilters.median(refDs,kernelSize,borderline)
         #ver si si cambio resta de original y filtrada de media
         '''
         r = refDs.pixel_array - newImage
         plt.imshow(r, cmap=plt.cm.gray)
         plt.show()
         '''
-        
     else:
         kernel = kernels[kernelNum]
-        newImage = libFilters.applyConvolution(refDs.pixel_array,kernel,borderline)
+        newImage = libFilters.applyConvolution(refDs,kernel,borderline)
     newImage = newImage.astype(np.int64)#
     #filtered = copy.deepcopy(newImage) 
     filtered = newImage
     showImageFiltered(newImage,frame)
 
-def wichOne (name, borderline,frame):
+def wichOne (name,kernelSize,borderline, frame):
+    #filterTFilter.get(),kernelSize.get(), comboBorder.get(),frameBR)
     if(name == 'Sobel'):
         sobel(borderline,frame)
     elif(name == 'Otsu'):
-        otsu(frame)
+        applyOtsu(frame)
+    elif(name=='OtsuParcial'):
+        applyOtsuParcial(kernelSize,frame)
+        
 
+#deberia normalizar?
 def sobel(borderline,frame):
     global filtered
     gx = libFilters.applyConvolution(filtered, SOBELX, borderline)
@@ -168,71 +173,42 @@ def sobel(borderline,frame):
     showImageFiltered(g,frame)
     
 
-def otsu(frame):
+def applyOtsu(frame):
     global filtered
-    total = filtered.size
-    hist = libFilters.histogram(filtered) #histogram
-    #
-    nu = 0
-    sumB = 0
-    wB = 0
-    wF = 0
-    threshold = 0
-    varMax = 0
-    for i in range(0,np.amax(filtered)): #imagen 1 brainDicom
-        nu += i * hist[i]
-    for i in range(0,65000):
-        wB += hist[i]
-        if (wB == 0):
-            continue
-        wF = total - wB
-        if (wF == 0): 
-            break
-        sumB += i * hist[i]
-        mB = sumB / wB
-        mF = (nu - sumB) / wF
-        #calculate between class variance
-        varBetween = wB * wF * (mB - mF) * (mB - mF)
-        if (varMax < varBetween):
-            varMax = varBetween
-            threshold = i
-    print (threshold)
-    #threshold divide entre blanco y negro
-    row, column = filtered.shape
-    for i in range(0,row):
-        for j in range(0,column):
-            if (filtered[i,j] >= threshold):
-                filtered[i,j] = 65353
-            elif( filtered[i,j] < threshold):
-                filtered[i,j] = 0
-    filtered = np.copy(filtered)
+    filtered = np.copy(libFilters.otsu(filtered))
+    #filtered = np.copy(filtered)
     showImageFiltered(filtered,frame)
-    '''
-    th = filtered.astype(np.int64)#
-    hist = libFilters.histogram(th)
-    plt.clf()
-    plt.plot(th)
-    plt.show()
-    '''
 
+def applyOtsuParcial(kernelSize,frame):
+    global filtered
+    filtered = np.copy(libFilters.otsuParcial(filtered, kernelSize))
+    print("termino otsu parcial")
+    showImageFiltered(filtered,frame)
+
+#funciona una vez otsu tiene errores :v
 def cutImage(frame):
     global filtered
     min = 512
     row, column = filtered.shape
-    x =0
+    x = 0
     y = 0
     max = 0
     min = 65535
     for i in range (1,row):
         for j in range (1,column):
-            if( filtered[i,j] == 65353 and filtered[i-1,j] == 0):#izq
+            if( filtered[i,j] != 0 and filtered[i-1,j] == 0):#izq
                 if ( j > max):
                     max = j
-            if( filtered[i,j] == 0 and filtered[i-1,j] == 65353):#derecha
+            if( filtered[i,j] == 0 and filtered[i-1,j] != 0):#derecha
                 if ( j < min):
                     print("min")
-                    min = j
-    print(min)
-    filtered[:,min]=30000
-    filtered[:,max]=30000
+                    min = j      
+            if( filtered[i,j] != 0 and filtered[i,j-1] == 0):#arriba
+                if ( i > max):
+                    max = i
+    filtered[:,min]=65535
+    filtered[:,max]=65535
     showImageFiltered(filtered,frame)
+
+
+    

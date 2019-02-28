@@ -6,7 +6,7 @@ import os
 from matplotlib import pyplot as plt
 from tkinter import filedialog
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-
+from PIL import Image
 import libFilters
 import windowFilters
 
@@ -51,6 +51,7 @@ def accessImages(num):
     try:
         output = "Imagen numero: " + str(num+1) + "\n"
         output = output + "Nombre: " + str(RefDs.PatientName) + "\n"
+        output = output + "path: " + str(lstFilesDCM[num]) + "\n"
     except:
         output = output + "No hay nombre de paciente" + "\n"
     try:
@@ -124,8 +125,15 @@ def openFilterWindow():
         messagebox.showerror("error", "No hay imagen seleccionada.")
         return
     refDs = pydicom.dcmread(lstFilesDCM[num])
-    windowFilters.start(refDs,num,root)
+    windowFilters.start(refDs.pixel_array,num,root)
 
+def readNaturalImage():
+    try:
+        filepath = filedialog.askopenfilename()
+    except:
+        print ("escoge una imagen")
+    image = Image.open(filepath).convert('L')
+    windowFilters.start(np.array(image),0,root)
 
 ##GUI
 root = tk.Tk()
@@ -137,7 +145,7 @@ frameR = tk.Frame(root, width = 50, height = 50)
 #frameL
 nextNum = tk.Label(frameL, text="0")
 folderSelector = tk.Button(frameL, text="Seleccionar carpeta", command=folderFinder)
-fileSelector = tk.Button(frameL, text="Seleccionar imagen")
+fileSelector = tk.Button(frameL, text="Seleccionar imagen", command=readNaturalImage)
 filters = tk.Button(frameL,text="Aplicar Filtro", command=openFilterWindow)
 inext = tk.Button(frameL, text="Siguiente",command= nextImage)
 ibefore = tk.Button(frameL, text="Anterior", command= beforeImage)
