@@ -158,7 +158,7 @@ def wichOne (name,kernelSize,borderline, frame):
     elif(name == 'Otsu'):
         applyOtsu(frame)
     elif(name=='OtsuParcial'):
-        applyOtsuParcial(kernelSize,frame)
+        applyOtsuParcial(20,frame)
         
 
 #deberia normalizar?

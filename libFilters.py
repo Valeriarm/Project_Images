@@ -133,8 +133,8 @@ def otsuParcial(original,kernelSize):
     newImage = np.zeros((rowO,columnO))
     m = 0
     n = 0
-    for i in range (neighbor,rowO-neighbor):
-        for j in range (neighbor,columnO-neighbor):
+    for i in range (neighbor,rowO, kernelSize):
+        for j in range (neighbor,columnO, kernelSize):
             firsti = i - neighbor
             firstj = j - neighbor  
             endi = i + neighbor + 1
