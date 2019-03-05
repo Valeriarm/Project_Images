@@ -74,7 +74,7 @@ def start(refDs,num,root):
     #frameTFilter
     titleTFilter = tk.Label(frameTFilter, text="Filtros")
     filterTFilter = ttk.Combobox(frameTFilter, state="readonly")
-    applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(),kernelSize.get(),comboBorder.get(),frameBR))
+    applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(),kernelSize.get(),comboBorder.get(),frameBR, filters))
     cut = tk.Button(frameTFilter, text="recortar", command = lambda: cutImage(frameBL))
     filterTFilter["values"] =["Sobel","Otsu", "OtsuParcial"]
     #pack ############################
@@ -106,8 +106,6 @@ def start(refDs,num,root):
     showImage(refDs,frameBR)
 
 def showImage(RefDs,frame):
-    #print(str(image.winfo_children()))#muestra que hay en el frame image
-    #elimina lo que esta en ese frame
     for widget in frame.winfo_children():
         widget.destroy()
     #crea el elemento que va a contener la imagen
@@ -120,11 +118,8 @@ def showImage(RefDs,frame):
     imagesTemp.get_tk_widget().pack()
 
 def showImageFiltered(image,frame):
-    #print(str(image.winfo_children()))#muestra que hay en el frame image
-    #elimina lo que esta en ese frame
     for widget in frame.winfo_children():
         widget.destroy()
-    #crea el elemento que va a contener la imagen
     f = plt.Figure()
     a = f.add_subplot(111)
     a.imshow(image, cmap=plt.cm.gray)
@@ -134,31 +129,36 @@ def showImageFiltered(image,frame):
 
 def applyFilter(frame,refDs,kernelNum,kernelSize,borderline):
     global filtered
-    if (kernelNum == 1 or kernelNum == 2 or kernelNum == 3 or kernelNum == 11):#mejorar esta escogencia.
-        #recuperar el tamaño del kernel correspondiente a la matrix seleccionada
+    if (kernelNum == -1 or kernelSize == "" or borderline == "" ):#no funciona completamente
+        tk.messagebox.showinfo("Error", "No se ingreso alguno de los datos necesarios.")
+        return    
+    elif(kernelNum == 1 or kernelNum == 2 or kernelNum == 3 or kernelNum == 11):#mejorar esta escogencia.
         newImage = libFilters.median(refDs,kernelSize,borderline)
-        #ver si si cambio resta de original y filtrada de media
-        '''
-        r = refDs.pixel_array - newImage
-        plt.imshow(r, cmap=plt.cm.gray)
-        plt.show()
-        '''
     else:
         kernel = kernels[kernelNum]
         newImage = libFilters.applyConvolution(refDs,kernel,borderline)
-    newImage = newImage.astype(np.int64)#
-    #filtered = copy.deepcopy(newImage) 
-    filtered = newImage
+    newImage = newImage.astype(np.int64)
+    filtered = np.copy(newImage)
     showImageFiltered(newImage,frame)
 
-def wichOne (name,kernelSize,borderline, frame):
-    #filterTFilter.get(),kernelSize.get(), comboBorder.get(),frameBR)
-    if(name == 'Sobel'):
+def wichOne (name,kernelSize,borderline, frame, filters):
+    if (kernelSize == "" or borderline == "" or name == ""):#no funciona completamente
+        tk.messagebox.showinfo("Error", "No se ingreso alguno de los datos necesarios.")
+        return 
+    elif(name == 'Sobel'):
         sobel(borderline,frame)
     elif(name == 'Otsu'):
         applyOtsu(frame)
     elif(name=='OtsuParcial'):
-        applyOtsuParcial(20,frame)
+        answer = tk.simpledialog.askstring("Entrada", "Tamaño de la ventana para threshold local..",parent=filters)
+        if answer is None:
+            tk.messagebox.showinfo("Error", "Ingrese el tamaño de ventana.")
+            return
+        elif int(answer) < 30 or int(answer) > 512:
+            tk.messagebox.showinfo("Error", "Ventana muy grande o pequeña.")
+            return
+        else:
+            applyOtsuParcial(int(answer),frame)
         
 
 #deberia normalizar?
@@ -176,7 +176,6 @@ def sobel(borderline,frame):
 def applyOtsu(frame):
     global filtered
     filtered = np.copy(libFilters.otsu(filtered))
-    #filtered = np.copy(filtered)
     showImageFiltered(filtered,frame)
 
 def applyOtsuParcial(kernelSize,frame):

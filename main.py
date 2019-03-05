@@ -44,10 +44,12 @@ def nextImage():
         
 #problema con la variable LstFileDCM
 def accessImages(num):
-    RefDs = pydicom.dcmread(lstFilesDCM[num])
+    try:
+        RefDs = pydicom.dcmread(lstFilesDCM[num])
+    except:
+        tk.messagebox.showinfo("Error", "No se encontraron archivos tipo DICOM.")
+        return
     output ="En construccion...\n"
-    #deberia poder hacer esto mejor porque puedo sacar los nombres de todos los atributos del header que tengo #20
-    #output = output + "Tipos de Datos: " + str(RefDs.dir("")) + "\n" #muestra todos los datos que hay en el header por nombre
     try:
         output = "Imagen numero: " + str(num+1) + "\n"
         output = output + "Nombre: " + str(RefDs.PatientName) + "\n"
@@ -109,12 +111,20 @@ def prepareDicoms(pathDicom):
 
 def folderFinder():
     folder = filedialog.askdirectory()
-    lstFilesDCM = []
-    prepareDicoms(folder)
+    if len(folder) <= 0:
+            tk.messagebox.showinfo("Error", "Seleccione un directorio.")
+            return
+    else:
+        lstFilesDCM = []
+        prepareDicoms(folder)
 
 def setHistogram():
     num = int(nextNum.cget("text"))
-    refDs = pydicom.dcmread(lstFilesDCM[num])
+    try:
+        refDs = pydicom.dcmread(lstFilesDCM[num])
+    except:
+        tk.messagebox.showinfo("Error", "No se encontraron archivos tipo DICOM.")
+        return
     histogram = libFilters.histogram(refDs.pixel_array)
     plt.plot(histogram)
     plt.show()
@@ -131,7 +141,12 @@ def readNaturalImage():
     try:
         filepath = filedialog.askopenfilename()
     except:
-        print ("escoge una imagen")
+        print ("esto no me habia pasado...")
+        tk.messagebox.showinfo("Error", "Escoge una imagen.")
+        return
+    if not isinstance(filepath,str):
+        tk.messagebox.showinfo("Error", "Escoge una imagen.")
+        return
     image = Image.open(filepath).convert('L')
     windowFilters.start(np.array(image),0,root)
 
