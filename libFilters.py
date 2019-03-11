@@ -119,22 +119,12 @@ def otsu(filtered):
     return filtered
 
 def otsuParcial(original,kernelSize):
-    print ("kernelSize,",kernelSize)
     neighbor = math.floor(int(kernelSize)/2)
     rowO, columnO=original.shape
-    """ 
-    image = original
-    if ( borderline == 'reflejados'):
-        image = np.pad(original,neighbor,'symmetric')
-    elif ( borderline == 'ceros') :
-        image = np.pad(original,neighbor, 'constant', constant_values=(0))
-    row, column = image.shape """
-    #nueva imagen
     newImage = np.zeros((rowO,columnO))
-    m = 0
-    n = 0
-    for i in range (neighbor,rowO, kernelSize):
-        for j in range (neighbor,columnO, kernelSize):
+    for i in range (neighbor,rowO+neighbor, kernelSize):
+        for j in range (neighbor,columnO+neighbor, kernelSize):
+            print(i, "  ", j)
             firsti = i - neighbor
             firstj = j - neighbor  
             endi = i + neighbor + 1
@@ -142,7 +132,33 @@ def otsuParcial(original,kernelSize):
             #otsu y threshold
             temp = otsu(original[firsti:endi,firstj:endj])
             newImage[firsti:endi,firstj:endj] = temp[:,:]
-            n=n+1
-        n=0
-        m=m+1
     return newImage  
+
+def Kmeans(matrix, centroids):
+    pre = [[] for i in range(len(centroids))]
+    d = np.zeros(len(centroids),dtype=int)
+    cmin = 65536
+    row, column = matrix.shape
+    for i in range(0,row):
+        for j in range(0,column):
+            #minimo
+            for k in range(0,len(centroids)):
+                d[k] = abs(centroids[k] - matrix[i,j])
+            pre[d.argmin()].append(matrix[i,j])
+    #calculando centroides nuevos
+    newCentroids = np.zeros(len(centroids),dtype=int)
+    for i in range(0,len(centroids)):
+        newCentroids[i] = int(np.sum(pre[i]) / len(pre[i]))
+    return np.array_equiv(centroids, newCentroids), pre, newCentroids
+
+def applyGroups(matrix, groups, tones):
+    row, column = matrix.shape
+    for i in range (0, row):
+        for j in range(0,column):
+            for k in range(0,len(groups)):
+                if (matrix[i,j] in groups[k]):
+                    matrix[i,j] = k
+                    break
+        print(i)
+    return matrix
+            

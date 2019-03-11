@@ -126,8 +126,6 @@ def setHistogram():
         tk.messagebox.showinfo("Error", "No se encontraron archivos tipo DICOM.")
         return
     histogram = libFilters.histogram(refDs.pixel_array)
-    plt.plot(histogram)
-    plt.show()
 
 def openFilterWindow():
     num = int(nextNum.cget("text"))

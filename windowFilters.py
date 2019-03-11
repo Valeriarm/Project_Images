@@ -51,12 +51,13 @@ def uploadKernels(filterName, kernelSize):
     archivo.close()
 
 def start(refDs,num,root):
+    global filtered
     filters = tk.Toplevel(root)
     #frame
     frameT = tk.Frame(filters,width=250,height=400)
-    frameTBorder = tk.Frame(frameT, width=100, height=100)
+    frameTBorder = tk.Frame(frameT, width=100, height=100,highlightcolor="black", highlightthickness=1)
     frameTPrepro = tk.Frame(frameT, width=100, height=100, highlightcolor="black", highlightthickness=1)
-    frameTFilter = tk.Frame(frameT,width=100,height=100)
+    frameTFilter = tk.Frame(frameT,width=100,height=100, highlightcolor="black", highlightthickness=1)
     frameB = tk.Frame(filters,width=250,height=400)
     frameBL = tk.Frame(frameB, width=100, height=400)
     frameBR = tk.Frame(frameB, width=100,height=400)
@@ -74,9 +75,9 @@ def start(refDs,num,root):
     #frameTFilter
     titleTFilter = tk.Label(frameTFilter, text="Filtros")
     filterTFilter = ttk.Combobox(frameTFilter, state="readonly")
-    applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(),kernelSize.get(),comboBorder.get(),frameBR, filters))
+    applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(),kernelSize.get(),comboBorder.get(),frameBR,filters))
     cut = tk.Button(frameTFilter, text="recortar", command = lambda: cutImage(frameBL))
-    filterTFilter["values"] =["Sobel","Otsu", "OtsuParcial"]
+    filterTFilter["values"] =["Sobel","Otsu", "OtsuParcial","kmeans"]
     #pack ############################
     frameT.pack(side='top')
     #FrameBorder
@@ -96,14 +97,24 @@ def start(refDs,num,root):
     filterTFilter.pack(padx=5,pady=5)
     applyF.pack(padx=5,pady=5)
     cut.pack(padx=5,pady=5)
+    #button tools
+    tools = tk.Button(frameTFilter,text="Herramientas", command=lambda: draw(refDs))
     #pack frameB
     frameB.pack(side='bottom')
     #frameB
     frameBL.pack(side = 'left')
     frameBR.pack(side='left')
     #
+    tools.pack(side='bottom')
+    #
     showImage(refDs,frameBL)
     showImage(refDs,frameBR)
+    filtered = np.copy(refDs)
+
+
+def draw(matrix):
+    plt.imshow(matrix,cmap=plt.cm.gray)
+    plt.show()
 
 def showImage(RefDs,frame):
     for widget in frame.winfo_children():
@@ -141,8 +152,24 @@ def applyFilter(frame,refDs,kernelNum,kernelSize,borderline):
     filtered = np.copy(newImage)
     showImageFiltered(newImage,frame)
 
-def wichOne (name,kernelSize,borderline, frame, filters):
-    if (kernelSize == "" or borderline == "" or name == ""):#no funciona completamente
+def argumentsKmeans(filters,name):
+    answer = tk.simpledialog.askstring("Entrada", "Numero de centroides",parent=filters)
+    centroids = [0]*int(answer)
+    tones = [0]*int(answer)
+    if int(answer) < 0 or answer is None:
+        tk.messagebox.showinfo("Error", "Ingrese el numero de centroides")
+        return 
+    for i in range(0,int(answer)):
+        data = tk.simpledialog.askstring("Entrada", "Centroide numero "+str(i)+":", parent=filters)
+        centroids[i] = int(data)
+    for j in range(0,int(answer)):
+        data = tk.simpledialog.askstring("Entrada", "Tono numero "+str(j)+":", parent=filters)
+        tones[j] = int(data)
+    return centroids, tones
+
+
+def wichOne (name,kernelSize,borderline, frame,filters):
+    if (kernelSize == "" or borderline == "" or name == ""):
         tk.messagebox.showinfo("Error", "No se ingreso alguno de los datos necesarios.")
         return 
     elif(name == 'Sobel'):
@@ -159,8 +186,13 @@ def wichOne (name,kernelSize,borderline, frame, filters):
             return
         else:
             applyOtsuParcial(int(answer),frame)
+    elif(name=='kmeans'):
+        centroids, tones = argumentsKmeans(filters,frame)
+        print ("centroids", centroids)
+        print("tones", tones)
+        applyKmeans(centroids,tones,frame)
         
-
+        
 #deberia normalizar?
 def sobel(borderline,frame):
     global filtered
@@ -169,10 +201,8 @@ def sobel(borderline,frame):
     g = np.absolute(gx) + np.absolute(gy)
     g = g.astype(np.int64)#
     filtered = np.copy(g)
-
     showImageFiltered(g,frame)
     
-
 def applyOtsu(frame):
     global filtered
     filtered = np.copy(libFilters.otsu(filtered))
@@ -184,15 +214,25 @@ def applyOtsuParcial(kernelSize,frame):
     print("termino otsu parcial")
     showImageFiltered(filtered,frame)
 
-#funciona una vez otsu tiene errores :v
+def applyKmeans(centroids,tones,frame):
+    global filtered
+    print(centroids)
+    stop, pre, newCentroids = libFilters.Kmeans(filtered, centroids)
+    while not stop:
+        stop, pre, newCentroids = libFilters.Kmeans(filtered,newCentroids)
+        print(stop,":",centroids,"--",newCentroids)
+    print(stop,"ahora a cambiar")
+    filtered = np.copy(libFilters.applyGroups(filtered, pre,tones))
+    print("termino kmeans")
+    showImageFiltered(filtered,frame)
+
 def cutImage(frame):
     global filtered
-    min = 512
     row, column = filtered.shape
     x = 0
     y = 0
     max = 0
-    min = 65535
+    min = 1
     for i in range (1,row):
         for j in range (1,column):
             if( filtered[i,j] != 0 and filtered[i-1,j] == 0):#izq
@@ -205,8 +245,8 @@ def cutImage(frame):
             if( filtered[i,j] != 0 and filtered[i,j-1] == 0):#arriba
                 if ( i > max):
                     max = i
-    filtered[:,min]=65535
-    filtered[:,max]=65535
+    filtered[:,min]=1
+    filtered[:,max]=1
     showImageFiltered(filtered,frame)
 
 
