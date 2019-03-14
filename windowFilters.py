@@ -18,6 +18,8 @@ SOBELY = np.array([[-1, -2, -1],
                     [1, 2, 1]]) 
 filtered = np.ones((512,512))
 
+structErosion = s = np.array([[1,1,1],[1,1,1],[1,1,1]])
+
 def uploadKernels(filterName, kernelSize):
     div = 10
     archivo = open("kernel.txt","r")
@@ -77,7 +79,7 @@ def start(refDs,num,root):
     filterTFilter = ttk.Combobox(frameTFilter, state="readonly")
     applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(),kernelSize.get(),comboBorder.get(),frameBR,filters))
     cut = tk.Button(frameTFilter, text="recortar", command = lambda: cutImage(frameBL))
-    filterTFilter["values"] =["Sobel","Otsu", "OtsuParcial","kmeans"]
+    filterTFilter["values"] =["Sobel","Otsu", "OtsuParcial","kmeans","erosion"]
     #pack ############################
     frameT.pack(side='top')
     #FrameBorder
@@ -191,6 +193,9 @@ def wichOne (name,kernelSize,borderline, frame,filters):
         print ("centroids", centroids)
         print("tones", tones)
         applyKmeans(centroids,tones,frame)
+    elif ( name  == "erosion"):
+        applyErosion(frame)
+
         
         
 #deberia normalizar?
@@ -225,6 +230,12 @@ def applyKmeans(centroids,tones,frame):
     filtered = np.copy(libFilters.applyGroups(filtered, pre,tones))
     print("termino kmeans")
     showImageFiltered(libFilters.colors(filtered),frame)
+
+def applyErosion(frame):
+    global filtered
+    global structErosion
+    filtered = np.copy(libFilters.erosion(filtered, structErosion))
+    showImageFiltered(filtered, frame)
 
 def cutImage(frame):
     global filtered
