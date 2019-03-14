@@ -113,7 +113,7 @@ def otsu(filtered):
     for i in range(0,row):
         for j in range(0,column):
             if (filtered[i,j] >= threshold):
-                filtered[i,j] = 65535
+                filtered[i,j] = 1
             elif( filtered[i,j] < threshold):
                 filtered[i,j] = 0
     return filtered
@@ -151,14 +151,31 @@ def Kmeans(matrix, centroids):
         newCentroids[i] = int(np.sum(pre[i]) / len(pre[i]))
     return np.array_equiv(centroids, newCentroids), pre, newCentroids
 
+#por ahora tones es inutil
 def applyGroups(matrix, groups, tones):
-    row, column = matrix.shape
-    for i in range (0, row):
-        for j in range(0,column):
-            for k in range(0,len(groups)):
-                if (matrix[i,j] in groups[k]):
-                    matrix[i,j] = k
-                    break
+    for i, group in enumerate(groups):
+        for element in group:
+            matrix[ matrix == element] = i
         print(i)
     return matrix
             
+def colors(matrix):
+    return matrix
+
+
+def erosion(matrix, struct):
+    neighbor = math.floor(int(struct)/2)
+    rowO, columnO=matrix.shape
+    row, column = struct.shape
+    newImage = np.zeros((rowO,columnO))
+    change = np.zeros(row,column)
+    for i in range (neighbor,rowO+neighbor, struct):
+        for j in range (neighbor,columnO+neighbor, struct):
+            firsti = i - neighbor
+            firstj = j - neighbor  
+            endi = i + neighbor + 1
+            endj = j + neighbor + 1
+            #erosion
+            if ( not np.array_equiv(matrix[firsti:endi,firstj:endj], struct[:,:])):
+                newImage[firsti:endi,firstj:endj] = change 
+    return newImage     

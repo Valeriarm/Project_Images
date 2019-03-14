@@ -220,11 +220,11 @@ def applyKmeans(centroids,tones,frame):
     stop, pre, newCentroids = libFilters.Kmeans(filtered, centroids)
     while not stop:
         stop, pre, newCentroids = libFilters.Kmeans(filtered,newCentroids)
-        print(stop,":",centroids,"--",newCentroids)
+        print(stop,":",newCentroids)
     print(stop,"ahora a cambiar")
     filtered = np.copy(libFilters.applyGroups(filtered, pre,tones))
     print("termino kmeans")
-    showImageFiltered(filtered,frame)
+    showImageFiltered(libFilters.colors(filtered),frame)
 
 def cutImage(frame):
     global filtered
