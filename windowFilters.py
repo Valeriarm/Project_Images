@@ -79,7 +79,7 @@ def start(refDs,num,root):
     filterTFilter = ttk.Combobox(frameTFilter, state="readonly")
     applyF = tk.Button(frameTFilter, text="Aplicar Filtro", command = lambda: wichOne(filterTFilter.get(),kernelSize.get(),comboBorder.get(),frameBR,filters))
     cut = tk.Button(frameTFilter, text="recortar", command = lambda: cutImage(frameBL))
-    filterTFilter["values"] =["Sobel","Otsu", "OtsuParcial","kmeans","erosion"]
+    filterTFilter["values"] =["Sobel","Otsu", "OtsuParcial","kmeans","erosion","dilatacion", "erosion-dilatacion"]
     #pack ############################
     frameT.pack(side='top')
     #FrameBorder
@@ -195,6 +195,10 @@ def wichOne (name,kernelSize,borderline, frame,filters):
         applyKmeans(centroids,tones,frame)
     elif ( name  == "erosion"):
         applyErosion(frame)
+    elif (name == "dilatacion"):
+        applyDilatation(frame)
+    elif (name  == "erosion-dilatacion"):
+        applyDifference(frame)
 
         
         
@@ -236,6 +240,22 @@ def applyErosion(frame):
     global structErosion
     filtered = np.copy(libFilters.erosion(filtered, structErosion))
     showImageFiltered(filtered, frame)
+
+def applyDilatation(frame):
+    global filtered
+    global structErosion
+    filtered = np.copy(libFilters.dilatation(filtered, structErosion))
+    showImageFiltered(filtered, frame)
+
+def applyDifference(frame):
+    global filtered
+    global structErosion
+    #erosion menos dilatacion
+    erosion = np.copy(libFilters.erosion(filtered, structErosion))
+    dilatation = np.copy(libFilters.dilatation(filtered, structErosion))
+    filtered = np.copy( dilatation - erosion )
+    showImageFiltered(filtered, frame)
+
 
 def cutImage(frame):
     global filtered

@@ -18,12 +18,6 @@ def erosion(matrix, struct):
                 #pero debo tener en cuenta si en la nueva ya ahi unos marcados en ese sector
                 if (np.sum(newImage[firsti:endi,firstj:endj]) == 0):
                     newImage[firsti:endi,firstj:endj] = change[:,:]
-                else:
-                    #deberia poder hacerlo con map mejor
-                    for m in range (firsti,endi):
-                        for n in range(firstj,endj):
-                            if newImage[m,n] != 1:
-                                newImage[m,n] = 0
             else:
                 #no debo quitar marcas realizadas
                 newImage[i,j] = 1

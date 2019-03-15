@@ -6,6 +6,7 @@ def dilatation(matrix, struct):
     rowO, columnO=matrix.shape
     row, column = struct.shape
     newImage = np.zeros((rowO,columnO))
+    change = np.ones((row,column))
     for i in range (neighbor,rowO-neighbor):
         for j in range (neighbor,columnO-neighbor):
             firsti = i - neighbor
@@ -15,9 +16,7 @@ def dilatation(matrix, struct):
             #dilatation   
             # se esta suponiendo origen centro debo tener en cuenta opcion de centro 
             if ( matrix[i,j] == 1 ):
-                newImage[firsti:endi,firstj:endj] = struct[:,:]
-            else:
-                newImage[firsti:endi,firstj:endj] = matrix[firsti:endi,firstj:endj]
+                newImage[firsti:endi,firstj:endj] = change[:,:]
     return newImage
 
 
