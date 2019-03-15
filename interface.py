@@ -14,7 +14,7 @@ import funciones
 
 lstFilesDCM = []
 VALUES = 65536
-modifiedImage = np.zeros(512*512)
+modifiedImage = np.zeros((512,512))
 
 
 #////////////////ACCESS TO IMAGE///////////////////
@@ -27,16 +27,20 @@ def showOriginalImage(RefDs):
 	a.imshow(RefDs.pixel_array, cmap=plt.cm.gray)
 	imagesDicom = FigureCanvasTkAgg(f, master=frameR1)
 	imagesDicom.draw()
-	imagesDicom.get_tk_widget().pack(padx=2,pady= 2, side = tk.LEFT, fill=tk.BOTH, expand=1)
+	imagesDicom.get_tk_widget().pack(padx=2,pady= 2, side = tk.RIGHT)
 
 
 def showFiletredImage(RefDs):
+	global modifiedImage
+	modifiedImage = RefDs
 	f = plt.Figure()
 	a = f.add_subplot(111)
-	a.imshow(RefDs, cmap=plt.cm.gray)
-	imagesFilteredDicom = FigureCanvasTkAgg(f, master=frameR)
+	a.imshow(modifiedImage, cmap=plt.cm.gray)
+	print(modifiedImage)
+	imagesFilteredDicom = FigureCanvasTkAgg(f, master=frameR2)
 	imagesFilteredDicom.draw()
-	imagesFilteredDicom.get_tk_widget().pack(padx=2,pady= 2, side = tk.LEFT)
+	imagesFilteredDicom.get_tk_widget().pack(padx=2,pady= 2, side = tk.RIGHT)
+
 
 
 
@@ -57,7 +61,7 @@ def accessImages(num):
 	except:
 		output = "Datos no definidos."
 
-	infoImageDicom['text'] = output
+	#infoImageDicom['text'] = output
 
 	showOriginalImage(RefDs)
 
@@ -75,6 +79,9 @@ def prepareDicoms(pathDicom):
 
 def nextI():
 	try:
+		for widget in frameR2.winfo_children():
+			widget.destroy()
+
 		num = int(inext.cget("text"))
 		if num < len(lstFilesDCM):
 			inext.config(text=num+1)
@@ -86,6 +93,9 @@ def nextI():
 
 def beforeI():
 	try:
+		for widget in frameR2.winfo_children():
+			widget.destroy()
+
 		num = int(inext.cget("text"))
 		if (num <= len(lstFilesDCM) and num > 0):
 			inext.config(text=num-1)
@@ -107,47 +117,62 @@ def folderFinder():
 #////////////////FUNTIONS////////////////////
 
 def validationKernelFilterAndSize():
-	try:
-		imageFilter = filterSelector.get()
-		kernelSize = kernelSelector.get()
+	global modifiedImage
+
+	#try:
+	for widget in frameR2.winfo_children():
+		widget.destroy()
+	imageFilter = filterSelector.get()
+	kernelSize = kernelSelector.get()
+	imageType = imageSelector.get()
+
+	if (imageType == "Filtrada" and np.amax(modifiedImage) != 0):
+		image = modifiedImage
+	else:
 		num = int(inext.cget("text"))
 		RefDs = pydicom.dcmread(lstFilesDCM[num])
 		image = RefDs.pixel_array
 
-		if (imageFilter == "Gaussiano" and kernelSize == "3x3"):
-			showFiletredImage(funciones.convolution(image,gaussian3x3))
-		elif (imageFilter == "Gaussiano" and kernelSize == "5x5"):
-			showFiletredImage(funciones.convolution(image,gaussian5x5))
-		elif (imageFilter == "Gaussiano" and kernelSize == "7x7"):
-			showFiletredImage(funciones.convolution(image,gaussian7x7))
-		elif (imageFilter == "Promedio" and kernelSize == "3x3"):
-			showFiletredImage(funciones.convolution(image,average3x3))
-		elif (imageFilter == "Promedio" and kernelSize == "5x5"):
-			showFiletredImage(funciones.convolution(image,average5x5))
-		elif (imageFilter == "Promedio" and kernelSize == "7x7"):
-			showFiletredImage(funciones.convolution(image,average7x7))
-		elif (imageFilter == "Rayleigh" and kernelSize == "3x3"):
-			showFiletredImage(funciones.convolution(image,rayleigh3x3))
-		elif (imageFilter == "Rayleigh" and kernelSize == "5x5"):
-			showFiletredImage(funciones.convolution(image,rayleigh5x5))
-		elif (imageFilter == "Mediana" and kernelSize == "3x3"):
-			showFiletredImage(funciones.median(image,median3x3))
-		elif (imageFilter == "Mediana" and kernelSize == "5x5"):
-			showFiletredImage(funciones.median(image,median5x5))
-		elif (imageFilter == "Mediana" and kernelSize == "7x7"):
-			showFiletredImage(funciones.median(image,median7x7))
-		elif (imageFilter == "Mediana" and kernelSize == "9x9"):
-			showFiletredImage(funciones.median(image,median9x9))
-		elif (imageFilter == "Mediana" and kernelSize == "11x11"):
-			showFiletredImage(funciones.median(image,median11x11))
-		elif (imageFilter == "Mediana" and kernelSize == "13x13"):
-			showFiletredImage(funciones.median(image,median13x13))
-		elif (imageFilter == "Mediana" and kernelSize == "15x15"):
-			showFiletredImage(funciones.median(image,median15x15))
-		else:
-			messagebox.showinfo("Warning", "Lo sentimos.. :( \n No esta disponible la opcion aun")
-	except IndexError:
-		messagebox.showerror("Warning", "No ha seleccionado una carpeta de imagenes")
+	if (imageFilter == "Gaussiano" and kernelSize == "3x3"):
+		showFiletredImage(funciones.convolution(image,gaussian3x3))
+	elif (imageFilter == "Gaussiano" and kernelSize == "5x5"):
+		showFiletredImage(funciones.convolution(image,gaussian5x5))
+	elif (imageFilter == "Gaussiano" and kernelSize == "7x7"):
+		showFiletredImage(funciones.convolution(image,gaussian7x7))
+	elif (imageFilter == "Promedio" and kernelSize == "3x3"):
+		showFiletredImage(funciones.convolution(image,average3x3))
+	elif (imageFilter == "Promedio" and kernelSize == "5x5"):
+		showFiletredImage(funciones.convolution(image,average5x5))
+	elif (imageFilter == "Promedio" and kernelSize == "7x7"):
+		showFiletredImage(funciones.convolution(image,average7x7))
+	elif (imageFilter == "Rayleigh" and kernelSize == "3x3"):
+		showFiletredImage(funciones.convolution(image,rayleigh3x3))
+	elif (imageFilter == "Rayleigh" and kernelSize == "5x5"):
+		showFiletredImage(funciones.convolution(image,rayleigh5x5))
+	elif (imageFilter == "Mediana" and kernelSize == "3x3"):
+		showFiletredImage(funciones.median(image,median3x3))
+	elif (imageFilter == "Mediana" and kernelSize == "5x5"):
+		showFiletredImage(funciones.median(image,median5x5))
+	elif (imageFilter == "Mediana" and kernelSize == "7x7"):
+		showFiletredImage(funciones.median(image,median7x7))
+	elif (imageFilter == "Mediana" and kernelSize == "9x9"):
+		showFiletredImage(funciones.median(image,median9x9))
+	elif (imageFilter == "Mediana" and kernelSize == "11x11"):
+		showFiletredImage(funciones.median(image,median11x11))
+	elif (imageFilter == "Mediana" and kernelSize == "13x13"):
+		showFiletredImage(funciones.median(image,median13x13))
+	elif (imageFilter == "Mediana" and kernelSize == "15x15"):
+		showFiletredImage(funciones.median(image,median15x15))
+	elif (imageFilter == "Sobel"):
+		neighbors = validationKernelSize()
+		showFiletredImage(funciones.sobel(image, neighbors))
+	elif (imageFilter == "Otsu"):
+		showFiletredImage(np.copy(funciones.thresholding(image)))
+	else:
+		messagebox.showinfo("Warning", "Lo sentimos.. :( \n No esta disponible la opcion aun")
+	
+	#except IndexError:
+	#	messagebox.showerror("Warning", "Algo ha salido mal")
 
 
 
@@ -169,41 +194,62 @@ def validationKernelSize():
 		return 11
 	
 
-def histogram():
-	try:
-		num = int(inext.cget("text"))
-		RefDs = pydicom.dcmread(lstFilesDCM[num])
-		histogram = funciones.histogram(RefDs)
-		plt.plot(histogram)
-		plt.show()
-	except IndexError:
-		messagebox.showerror("Warning", "No ha seleccionado una carpeta de imagenes")
 
-def sobel():
-	try:
+def histogram():
+	#try:
+	global modifiedImage
+	image = np.zeros((512,512))
+	imageType = imageSelector.get()
+
+	if (imageType == "Filtrada" and np.amax(modifiedImage)!= 0):
+		image = modifiedImage
+	else:
 		num = int(inext.cget("text"))
 		RefDs = pydicom.dcmread(lstFilesDCM[num])
 		image = RefDs.pixel_array
+
+	histogram = funciones.histogramNormalised(image)
+	plt.plot(histogram)
+	plt.show()
+	#except IndexError:
+	#	messagebox.showerror("Warning", "No ha seleccionado una carpeta de imagenes")
+
+
+def sobel():
+	global modifiedImage
+	try:
+		image = np.zeros((512,512))
+		imageType = imageSelector.get()
+
+		if (imageType == "Filtrada"):
+			image = modifiedImage
+		else:
+			num = int(inext.cget("text"))
+			RefDs = pydicom.dcmread(lstFilesDCM[num])
+			image = RefDs.pixel_array
+
 		neighbors = validationKernelSize()
-		newImage = funciones.sobel(image, neighbors)
-		plt.imshow(newImage, cmap=plt.cm.bone)
-		plt.show()
+		modifiedImage = funciones.sobel(image, neighbors)
+		showFiletredImage(modifiedImage)
 	except IndexError:
 		messagebox.showerror("Warning", "No ha seleccionado una carpeta de imagenes")
 
 
 
 def otsu():
-	
-	num = int(inext.cget("text"))
-	RefDs = pydicom.dcmread(lstFilesDCM[num])
-	image = RefDs.pixel_array
-	neighbors = validationKernelSize()
-	newImage = funciones.sobel(image, neighbors)
-	threshold = funciones.thresholding(newImage)
-	#newImage = funciones.convolution(threshold, gaussian7x7)
-	plt.imshow(threshold, cmap=plt.cm.bone)
-	plt.show()
+	global modifiedImage
+	image = np.zeros((512,512))
+	imageType = imageSelector.get()
+
+	if (imageType == "Filtrada"):
+		image = modifiedImage
+	else:
+		num = int(inext.cget("text"))
+		RefDs = pydicom.dcmread(lstFilesDCM[num])
+		image = RefDs.pixel_array
+
+	threshold = funciones.thresholding(image)
+	showFiletredImage(threshold)
 
 
 
@@ -280,15 +326,16 @@ root.geometry("1000x500")
 
 #Frames
 frameL = tk.Frame(root,bg= "thistle1")
-frameR = tk.Frame(root,bg= "thistle1")
-frameR1 = tk.Frame(root,bg= "thistle1")
+frameR = tk.Frame(root,bg= "thistle1", width = 250, height=250 )
+frameR1 = tk.Frame(root,bg= "thistle1", width = 250, height=250 )
 frameR2 = tk.Frame(root,bg= "thistle1")
 frameNB = tk.Frame(frameL,bg= "thistle1")
 
 
 #Valores de los Combobox
 kernelSelectorValues = ["3x3","5x5","7x7", "9x9", "11x11", "13x13", "15x15"]
-filterSelectorValues = ["Gaussiano","Promedio","Rayleigh","Mediana"]
+filterSelectorValues = ["Gaussiano","Promedio","Rayleigh","Mediana", "Sobel", "Otsu", "K-Means"]
+imageSelectorValues = ["Original", "Filtrada"]
 
 #combobox style
 comboStyle = ttk.Style()
@@ -297,10 +344,9 @@ comboStyle.theme_use('comboStyle')
 
 #buttons
 histogramButton = tk.Button(frameL,height=1 ,width=16 ,text="Histograma", bg= "gray58", fg = "white", font = "Arial 10", command = histogram)
-sobelButton = tk.Button(frameL,height=1 ,width=16 ,text="Sobel", bg= "gray58", fg = "white", font = "Arial 10", command = sobel)
-otsuButton = tk.Button(frameL,height=1 ,width=16 ,text="Otsu", bg= "gray58", fg = "white", font = "Arial 10", command = otsu)
+#sobelButton = tk.Button(frameL,height=1 ,width=16 ,text="Sobel", bg= "gray58", fg = "white", font = "Arial 10", command = sobel)
+#otsuButton = tk.Button(frameL,height=1 ,width=16 ,text="Otsu", bg= "gray58", fg = "white", font = "Arial 10", command = otsu)
 folderSelector = tk.Button(frameL,height=1 ,width=16 ,text="Seleccionar carpeta", bg= "gray58", fg = "white", font = "Arial 10", command = folderFinder)
-#imageSelector = tk.Button(frameL,height=1 ,width=16 ,text="Seleccionar imagen", bg= "gray58", fg = "white", font = "Arial 10", command = imageFinder)
 aplyFilter = tk.Button(frameL,height=1 ,width=16 ,text="Aplicar Filtro", bg= "gray58", fg = "white", font = "Arial 10", command= validationKernelFilterAndSize)
 nextButton = tk.Button(frameNB,height=1 ,width=8 ,text=">", bg= "gray58", fg = "white", font = "Arial 10 bold", command = nextI)
 beforeButton = tk.Button(frameNB,height=1 ,width=8 ,text="<", bg= "gray58", fg = "white", font = "Arial 10 bold", command = beforeI)
@@ -308,38 +354,43 @@ beforeButton = tk.Button(frameNB,height=1 ,width=8 ,text="<", bg= "gray58", fg =
 #labels
 kernelLabel = tk.Label(frameL, text="Tamano kernel",bg= "thistle1" , fg = "gray40", font = "Arial 10 bold")
 filterLabel = tk.Label(frameL, text="Filtro", bg= "thistle1", fg = "gray40", font = "Arial 10 bold")
+imageLabel = tk.Label(frameL, text="Imagen", bg= "thistle1", fg = "gray40", font = "Arial 10 bold")
 title = tk.Label(frameL,height=3, width=24, text="Procesamiento\nde Imagenes", bg= "thistle1", fg = "gray40", font = "Arial 15 bold")
 inext = tk.Label(frameL, text="0", bg= "thistle1", fg = "gray40", font = "Arial 12 bold")
-infoImageDicom = tk.Label(frameR, bg= "thistle1" ,text="Imagen Original", height=20, width=30,  fg = "gray30")
+#nfoImageDicom = tk.Label(frameR, bg= "thistle1" ,text="Imagen Original", height=20, width=30,  fg = "gray30")
 
 
 #comobox
-kernelSelector = ttk.Combobox(frameL,height=1 ,width=15, values = kernelSelectorValues, state = "readonly", font = "Arial 11")
+kernelSelector = ttk.Combobox(frameL,height=2 ,width=15, values = kernelSelectorValues, state = "readonly", font = "Arial 11")
 kernelSelector.current(0)
-filterSelector = ttk.Combobox(frameL,height=1 ,width=15, values = filterSelectorValues, state = "readonly", font = "Arial 11")
+filterSelector = ttk.Combobox(frameL,height=2 ,width=15, values = filterSelectorValues, state = "readonly", font = "Arial 11")
 filterSelector.current(0)
+imageSelector = ttk.Combobox(frameL,height=2 ,width=15, values = imageSelectorValues, state = "readonly", font = "Arial 11")
+imageSelector.current(0)
 
 
 
 #////////////////////////////PACKS///////////////////////////
 
 frameL.pack(side=tk.LEFT)
-frameR.pack(side=tk.RIGHT)
+#frameR.pack(side=tk.RIGHT)
 frameR1.pack(side=tk.LEFT)
-frameR2.pack(side=tk.RIGHT)
+frameR2.pack(side=tk.LEFT)
 
 
-title.pack(padx=2,pady= 2,side=tk.TOP)
-folderSelector.pack(padx=2,pady= 2,side=tk.TOP)
+title.pack(padx=2,pady= 3,side=tk.TOP)
+folderSelector.pack(padx=2,pady= 3,side=tk.TOP)
 #imageSelector.pack(padx=2,pady= 2,side=tk.TOP)
-histogramButton.pack(padx=2,pady= 2,side=tk.TOP)
-sobelButton.pack(padx=2,pady= 2,side=tk.TOP)
-otsuButton.pack(padx=2,pady= 2,side=tk.TOP)
-kernelLabel.pack(padx=2,pady= 1,side=tk.TOP)
-kernelSelector.pack(padx=2,pady= 1,side=tk.TOP)
-filterLabel.pack(padx=2,pady= 1,side=tk.TOP)
-filterSelector.pack(padx=2,pady= 1,side=tk.TOP)
-aplyFilter.pack(padx=2,pady= 10,side=tk.TOP)
+histogramButton.pack(padx=2,pady= 10,side=tk.TOP)
+#sobelButton.pack(padx=2,pady= 2,side=tk.TOP)
+#otsuButton.pack(padx=2,pady= 2,side=tk.TOP)
+kernelLabel.pack(padx=2,pady= 3,side=tk.TOP)
+kernelSelector.pack(padx=2,pady= 3,side=tk.TOP)
+filterLabel.pack(padx=2,pady= 3,side=tk.TOP)
+filterSelector.pack(padx=2,pady= 3,side=tk.TOP)
+imageLabel.pack(padx=2,pady= 3,side=tk.TOP)
+imageSelector.pack(padx=2,pady=3,side=tk.TOP)
+aplyFilter.pack(padx=2,pady= 12,side=tk.TOP)
 infoImageDicom.pack(padx=15,pady= 15,side=tk.RIGHT)
 
 #botones de seguir
