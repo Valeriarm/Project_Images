@@ -125,7 +125,7 @@ def showImage(RefDs,frame):
     f = plt.Figure()
     f.legend("Titulo")
     a = f.add_subplot(111)
-    a.imshow(RefDs, cmap=plt.cm.gray)
+    a.imshow(RefDs, cmap=plt.cm.gray)#
     imagesTemp = FigureCanvasTkAgg(f, master=frame)
     imagesTemp.draw()
     imagesTemp.get_tk_widget().pack()
@@ -233,7 +233,7 @@ def applyKmeans(centroids,tones,frame):
     print(stop,"ahora a cambiar")
     filtered = np.copy(libFilters.applyGroups(filtered, pre,tones))
     print("termino kmeans")
-    showImageFiltered(libFilters.colors(filtered),frame)
+    showImageFiltered(filtered,frame)
 
 def applyErosion(frame):
     global filtered

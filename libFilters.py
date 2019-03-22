@@ -148,19 +148,39 @@ def Kmeans(matrix, centroids):
     #calculando centroides nuevos
     newCentroids = np.zeros(len(centroids),dtype=int)
     for i in range(0,len(centroids)):
-        newCentroids[i] = int(np.sum(pre[i]) / len(pre[i]))
+        try:
+            newCentroids[i] = int(np.sum(pre[i]) / len(pre[i]))
+        except(ZeroDivisionError):
+            newCentroids[i] = int(np.sum(pre[i]))
     return np.array_equiv(centroids, newCentroids), pre, newCentroids
 
 #por ahora tones es inutil
 def applyGroups(matrix, groups, tones):
+    print("cantidad: ", len(groups))
+    color1 = [255,255,255] #blanco
+    color2 = [0,0,0] #negro
+    color3 = [0,255,0] #verde
+    color4 = [255,0,0]#rojo
+    color5 = [0,0,255]#azul
+    color6 =  [0,255,255]#azul clarito
+    color7 = [255,0,255]
+
+    color =  [color1, color2, color3, color4, color5,color6, color7]
+
+    #pintar
+    row, column = matrix.shape
+    colorsMatrix = np.zeros(shape=(row,column,3))#rgb
+
     for i, group in enumerate(groups):
         for element in group:
-            matrix[ matrix == element] = i
-        print(i)
-    return matrix
+            colorsMatrix[ matrix == element] = color[i]
+        print(i+1)
+    ''' 
+    plt.imshow(colorsMatrix)
+    plt.show()
+    '''
+    return colorsMatrix
             
-def colors(matrix):
-    return matrix
 
 
 def erosion(matrix, struct):
