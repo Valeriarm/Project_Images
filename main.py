@@ -12,11 +12,9 @@ import windowFilters
 import tkinter.font as tkFont
 
 VALUES = 65536
-#debemos arreglar esta variable local
 lstFilesDCM = []
 
 def showImage(RefDs):
-    #print(str(image.winfo_children()))#muestra que hay en el frame image
     #elimina lo que esta en ese frame
     for widget in frameR.winfo_children():
         widget.destroy()
@@ -127,6 +125,9 @@ def setHistogram():
         tk.messagebox.showinfo("Error", "No se encontraron archivos tipo DICOM.")
         return
     histogram = libFilters.histogram(refDs.pixel_array)
+    plt.plot(histogram)
+    plt.show()
+
 
 def openFilterWindow():
     num = int(nextNum.cget("text"))
@@ -140,7 +141,6 @@ def readNaturalImage():
     try:
         filepath = filedialog.askopenfilename()
     except:
-        print ("esto no me habia pasado...")
         tk.messagebox.showinfo("Error", "Escoge una imagen.")
         return
     if not isinstance(filepath,str):
@@ -151,8 +151,8 @@ def readNaturalImage():
 
 ##GUI
 root = tk.Tk()
-blueBack = '#%02x%02x%02x' % (1,135,185)
-blueButtons = '#%02x%02x%02x' % (102,184,214)
+blueBack = '#%02x%02x%02x' % (0,65,89)
+blueButtons = '#%02x%02x%02x' % (101,168,196)
 bold = tkFont.Font(weight='bold')
 root.configure(background=blueBack)
 

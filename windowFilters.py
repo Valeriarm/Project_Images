@@ -3,7 +3,7 @@ from tkinter import ttk
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from datetime import datetime
+import time
 import libFilters
 import tkinter.font as tkFont
 
@@ -67,21 +67,25 @@ def start(refDs,num,root):
     global filtered
     filters = tk.Toplevel(root)
     #style things
-    blueBack = '#%02x%02x%02x' % (1,135,185)
-    blueButtons = '#%02x%02x%02x' % (102,184,214)
+    blueBack = '#%02x%02x%02x' % (0,65,89)
+    blueButtons = '#%02x%02x%02x' % (101,168,196)
     bold = tkFont.Font(weight='bold')
     filters.configure(bg=blueBack)
-    combostyle= ttk.Style()
-    combostyle.theme_create('combostyle',
-                            parent='alt',
-                            settings = { 'TCombobox': 
-                            { 'configure':
-                                { 'selectbackground': '#%02x%02x%02x' % (1,135,185),
-                                    'fieldbackground': '#%02x%02x%02x' % (102,184,214),
-                                    'background': '#%02x%02x%02x' % (102,184,214),
-                                    'foreground': '#%02x%02x%02x' % (1,135,185)
-                                }}})
-    combostyle.theme_use('combostyle')
+    combostyle= ttk.Style() 
+    try:
+        combostyle.theme_create('combostyle',
+                                parent='alt',
+                                settings = { 'TCombobox': 
+                                { 'configure':
+                                    { 'selectbackground': blueBack,
+                                        'fieldbackground': blueButtons,
+                                        'background': blueButtons,
+                                        'foreground': 'white'
+                                    }}})
+        combostyle.theme_use('combostyle')
+    except(tk.TclError):
+        combostyle.theme_use('combostyle')
+
     #frames
     frameT = tk.Frame(filters,width=250,height=400)
     frameTPrepro = tk.Frame(frameT, width=100, height=100)
@@ -192,6 +196,7 @@ def showImageFiltered(image,frame):
 
 def applyFilter(textState, frame,refDs,kernelNum,kernelSize,filterName,borderline):
     global filtered
+    start_time = time.time()
     if (kernelNum == -1 or kernelSize == "" or borderline == "" ):
         tk.messagebox.showinfo("Error", "No se ingreso alguno de los datos necesarios.")
         return    
@@ -203,6 +208,7 @@ def applyFilter(textState, frame,refDs,kernelNum,kernelSize,filterName,borderlin
     newImage = newImage.astype(np.int64)
     filtered = np.copy(newImage)
     showImageFiltered(newImage,frame)
+    print(str(filterName) +" time (seconds): ", time.time() - start_time)
     #actualizar estado
     global state
     state = []
@@ -229,13 +235,15 @@ def argumentsKmeans(filters,name):
         return centroids
     except:
         tk.messagebox.showinfo("Error", "No se ingreso alguno de los datos necesarios.")
+        return
     
 ################
 
 
 # call the apropiate filters with the data that needs 
 def wichOne (textState, name,kernelSize,borderline, frame,filters,separate):
-    start_time = datetime.now()
+    global state
+    start_time = time.time()
     if (kernelSize == "" or borderline == "" or name == ""):
         tk.messagebox.showinfo("Error", "No se ingreso alguno de los datos necesarios.")
         return 
@@ -255,17 +263,30 @@ def wichOne (textState, name,kernelSize,borderline, frame,filters,separate):
             applyOtsuParcial(int(answer),frame)
     elif(name=='kmeans'):
         centroids = argumentsKmeans(filters,frame)
+        if (len(centroids) == 0):
+            tk.messagebox.showinfo("Error", "No se pudo aplicar k-means")
+            return
         applyKmeans(centroids,frame,separate)
         name = name + ' C: '+str(len(centroids))
     elif ( name  == "erosion"):
-        applyErosion(frame)
+        if ( "Otsu" not in state):
+            tk.messagebox.showinfo("Error", "La imagen debe ser binaria. (Aplicar Otsu)")
+            return
+        else:
+            applyErosion(frame)
     elif (name == "dilatacion"):
-        applyDilatation(frame)
+        if ( "Otsu" not in state):
+            tk.messagebox.showinfo("Error", "La imagen debe ser binaria. (Aplicar Otsu)")
+            return
+        else:
+            applyDilatation(frame)
     elif (name  == "dilatacion-erosion"):
-        applyDifference(frame)
-    end_time = datetime.now()
-    print(str(name) +" time duration: ", format(end_time - start_time))
-    global state
+        if ( "Otsu" not in state):
+            tk.messagebox.showinfo("Error", "La imagen debe ser binaria. (Aplicar Otsu)")
+            return
+        else:
+            applyDifference(frame)
+    print(str(name) +" time (seconds): ", time.time() - start_time)
     state.append(str(name))
     textState.configure(state='normal')
     textState.insert('end', str(name)+'\n')
@@ -276,7 +297,7 @@ def wichOne (textState, name,kernelSize,borderline, frame,filters,separate):
 
 def fieldSeparate(separate, newCentroids):
     separate["values"] = []
-    colorsName = ["verde","rojo","azul","blanco","negro","amarillo","rosa","naranja"]
+    colorsName = ["negro","verde","rojo","azul","blanco","amarillo","rosa","neon"]
     for i in range(0,len(newCentroids)):
         fields = list(separate["values"])
         separate["values"]=fields+[colorsName[i]]
@@ -303,7 +324,6 @@ def applyOtsuParcial(kernelSize,frame):
     showImageFiltered(filtered,frame)
 
 def applyKmeans(centroids,frame, separate):
-    
     global filtered
     stop, pregroups, newCentroids, indexMatrix = libFilters.Kmeans(filtered, centroids)
     while not stop:
