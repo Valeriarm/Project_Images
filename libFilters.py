@@ -8,7 +8,18 @@ from numpy import linalg as LA
 dicomImage = []
 
 VALUES = 65536
-NEIGHBORS = 1      
+NEIGHBORS = 1  
+
+color1 = [0,0,0] #negro
+color2 = [0,50,0] #verde
+color3 = [255,0,0]#rojo
+color4 =  [0,0,100]#azul
+color5 = [255,255,255] #blanco
+color6 = [255,255,0]#amarillo
+color7 = [255,0,255]#rosa
+color8 = [0,255,0]#neon
+color =  [color1, color2, color3, color4, color5,color6, color7,color8]
+
 
 def histogram(matrix):
     row, column = matrix.shape
@@ -21,10 +32,8 @@ def histogram(matrix):
     return hist
 
 def applyConvolution(original,kernel,borderline):
-    NEIGHBORS = int((len(kernel)/2)-0.5)
-    #definir la cantidad de vecinos respecto al kernel escogido
+    NEIGHBORS = int(np.floor(len(kernel)/2))
     rowO, columnO=original.shape
-    #adiciona fila o columna a cada extremo y copia su valor correspondiente.
     image = original
     if ( borderline == 'reflejados'):
         image = np.pad(original,NEIGHBORS,'symmetric')
@@ -41,7 +50,6 @@ def applyConvolution(original,kernel,borderline):
             firstj = j - NEIGHBORS  
             endi = i + NEIGHBORS + 1
             endj = j + NEIGHBORS + 1
-            #print(str(firsti)+str(firstj)+str(endi)+str(endj)+"neighbors"+str(NEIGHBORS))
             newImage [m,n] = np.sum(np.multiply(image[firsti:endi,firstj:endj], kernel[:,:]))
             n=n+1
         n=0
@@ -51,7 +59,6 @@ def applyConvolution(original,kernel,borderline):
 def median(original,kernelSize, borderline):
     neighbor = math.floor(int(kernelSize)/2)
     rowO, columnO=original.shape
-    #adiciona fila o columna a cada extremo y copia su valor correspondiente.
     image = original
     if ( borderline == 'reflejados'):
         image = np.pad(original,neighbor,'symmetric')
@@ -135,53 +142,56 @@ def otsuParcial(original,kernelSize):
     return newImage  
 
 def Kmeans(matrix, centroids):
-    pre = [[] for i in range(len(centroids))]
+    pregroups = [[] for i in range(len(centroids))]
     d = np.zeros(len(centroids),dtype=int)
     cmin = 65536
     row, column = matrix.shape
+    prematrix = np.zeros((row,column))
     for i in range(0,row):
         for j in range(0,column):
             #minimo
             for k in range(0,len(centroids)):
                 d[k] = abs(centroids[k] - matrix[i,j])
-            pre[d.argmin()].append(matrix[i,j])
+            indexMinimun = d.argmin()
+            prematrix[i,j] = indexMinimun
+            pregroups[indexMinimun].append(matrix[i,j])
+
     #calculando centroides nuevos
     newCentroids = np.zeros(len(centroids),dtype=int)
     for i in range(0,len(centroids)):
         try:
-            newCentroids[i] = int(np.sum(pre[i]) / len(pre[i]))
-        except(ZeroDivisionError):
-            newCentroids[i] = int(np.sum(pre[i]))
-    return np.array_equiv(centroids, newCentroids), pre, newCentroids
+            newCentroids[i] = int(np.sum(pregroups[i]) / len(pregroups[i]))
+        except:
+            newCentroids[i] = int(np.sum(pregroups[i]))
+    return np.array_equiv(centroids, newCentroids), pregroups, newCentroids, prematrix    
 
-#por ahora tones es inutil
-def applyGroups(matrix, groups, tones):
-    print("cantidad: ", len(groups))
-    color1 = [255,255,255] #blanco
-    color2 = [0,0,0] #negro
-    color3 = [0,255,0] #verde
-    color4 = [255,0,0]#rojo
-    color5 = [0,0,255]#azul
-    color6 =  [0,255,255]#azul clarito
-    color7 = [255,0,255]
+def showOneColor(matrix, selectedColorIndex):
+    global color
+    background = [0,0,0]
+    #escoger fondo
+    if (np.array_equiv(color[selectedColorIndex],[0,0,0])):
+        background = [255,255,255]
+    row, column, _ = matrix.shape
+    oneColor = np.copy(matrix)
+    for i in range(0,row):
+        for j in range(0,column):
+            if ( not np.array_equiv(matrix[i,j],color[selectedColorIndex])):
+                oneColor[i,j] = background
+    return oneColor 
 
-    color =  [color1, color2, color3, color4, color5,color6, color7]
-
+def applyGroups(matrix, groups, indexmatrix, centroids):
+    global color
     #pintar
     row, column = matrix.shape
     colorsMatrix = np.zeros(shape=(row,column,3))#rgb
+    
+    for i in range(0, row):
+        for j in range(0,column):
+            for k in range(0,len(centroids)):
+                if (k == indexmatrix[i,j]):
+                    colorsMatrix[i,j] = color[k]
 
-    for i, group in enumerate(groups):
-        for element in group:
-            colorsMatrix[ matrix == element] = color[i]
-        print(i+1)
-    ''' 
-    plt.imshow(colorsMatrix)
-    plt.show()
-    '''
-    return colorsMatrix
-            
-
+    return colorsMatrix           
 
 def erosion(matrix, struct):
     neighbor = math.floor(int(len(struct))/2)

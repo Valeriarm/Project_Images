@@ -9,6 +9,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from PIL import Image
 import libFilters
 import windowFilters
+import tkinter.font as tkFont
 
 VALUES = 65536
 #debemos arreglar esta variable local
@@ -150,24 +151,27 @@ def readNaturalImage():
 
 ##GUI
 root = tk.Tk()
+blueBack = '#%02x%02x%02x' % (1,135,185)
+blueButtons = '#%02x%02x%02x' % (102,184,214)
+bold = tkFont.Font(weight='bold')
+root.configure(background=blueBack)
 
 #frames
 frameL = tk.Frame(root, width = 50, height = 50)
 frameR = tk.Frame(root, width = 50, height = 50)
+frameL.configure(background=blueBack)
+frameR.configure(background=blueBack)
 
 #frameL
-nextNum = tk.Label(frameL, text="0")
-folderSelector = tk.Button(frameL, text="Seleccionar carpeta", command=folderFinder)
-fileSelector = tk.Button(frameL, text="Seleccionar imagen", command=readNaturalImage)
-filters = tk.Button(frameL,text="Aplicar Filtro", command=openFilterWindow)
-inext = tk.Button(frameL, text="Siguiente",command= nextImage)
-ibefore = tk.Button(frameL, text="Anterior", command= beforeImage)
-histogram = tk.Button(frameL, text="Histograma", command= setHistogram)
+nextNum = tk.Label(frameL,fg='white', text="0",bg=blueBack)
+folderSelector = tk.Button(frameL,bg=blueButtons,fg='white', text="Seleccionar carpeta",font=bold,  command=folderFinder)
+fileSelector = tk.Button(frameL,bg=blueButtons,highlightcolor=blueButtons,fg='white',font=bold, text="Seleccionar imagen", command=readNaturalImage)
+filters = tk.Button(frameL,bg=blueButtons,highlightcolor=blueButtons,fg='white',font=bold,  text="Aplicar Filtro", command=openFilterWindow)
+inext = tk.Button(frameL,bg=blueButtons,highlightcolor=blueButtons,fg='white',font=bold,   text="Siguiente",command= nextImage)
+ibefore = tk.Button(frameL,bg=blueButtons,highlightcolor=blueButtons,fg='white',font=bold,   text="Anterior", command= beforeImage)
+histogram = tk.Button(frameL,bg=blueButtons,highlightcolor=blueButtons,fg='white',font=bold,   text="Histograma", command= setHistogram)
 images = tk.Text(frameL, height=20, width=50)
 images.insert('end', "No hay imagenes seleccionadas")
-
-#frameR
-etiqueta = tk.Label(frameR, text="imagen dicom")
 
 #pack frameL
 frameL.pack(side = 'left')
@@ -183,9 +187,6 @@ ibefore.pack(padx=5, pady=5, side='right')
 
 #pack frameR
 frameR.pack(side = 'right')
-etiqueta.pack(side='top')
-
-
 
 #\:v/
 root.mainloop()
