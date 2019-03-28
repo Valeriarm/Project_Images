@@ -10,12 +10,16 @@ import cv2
 import math
 import copy
 import math
+from scipy.spatial import distance_matrix
 
 VALUES = 65536
 
 gaussian3x3 = np.array([[1,2,1],
 						 [2,4,2],
 						 [1,2,1]])
+
+
+rgbList= [[255,255,255],[0,0,0],[0,255,0],[0,0,255],[0,255,255],[255,0,255],[255,0,0],[0,255,255]]
 
 
 def histogramNormalised(matrix):
@@ -35,7 +39,6 @@ def histogramNormalised(matrix):
     return hist
 
 
-
 def histogram(matrix):
     row, column = matrix.shape
     max = np.amax(matrix)
@@ -47,7 +50,6 @@ def histogram(matrix):
             hist[index]+=1
 
     return hist
-
 
 
 def histogramMatrix(image):
@@ -88,8 +90,6 @@ def sobel(imagen, neighbors):
 	return gradient
 
 
-
-
 def median(image, neighbors):
 	newImage = [0]*len(image)
 
@@ -116,10 +116,10 @@ def thresholding(image):
 	histograma = histogram(image)
 	#print(np.amax(image))
 	
-	for i in range(0,np.amax(image)):
+	for i in range(50,np.amax(image)):
 		nu += i * histograma[i]
 
-	for i in range(0,np.amax(image)):
+	for i in range(50,np.amax(image)):
 		wB += histograma[i]
 		if (wB == 0):
 			continue
@@ -148,5 +148,138 @@ def thresholding(image):
 
 	return image
 
-	
+
+def erosion(image, struct):
+    neighbor = math.floor(int(len(struct))/2)
+    rowO, columnO=image.shape
+    row, column = struct.shape
+    newImage = np.zeros((rowO,columnO))
+    change = np.zeros((row,column))
+
+    for i in range (neighbor,rowO-neighbor):
+        for j in range (neighbor,columnO-neighbor):
+            if ( not np.array_equiv(image[i - neighbor:i + neighbor + 1,j - neighbor:j + neighbor + 1], struct[:,:])):
+                if (np.sum(newImage[i - neighbor:i + neighbor + 1,j - neighbor:j + neighbor + 1]) == 0):
+                    newImage[i - neighbor:i + neighbor + 1,j - neighbor:j + neighbor + 1] = change[:,:]
+            else:
+                newImage[i,j] = 1
+
+    return newImage
+
+
+def dilatation(image, struct):
+    neighbor = math.floor(int(len(struct))/2)
+    rowO, columnO = image.shape
+    row, column = struct.shape
+    newImage = np.zeros((rowO,columnO))
+    change = np.ones((row,column))
+
+    for i in range (neighbor,rowO-neighbor):
+        for j in range (neighbor,columnO-neighbor):
+            if ( image[i,j] == 1 ):
+                newImage[i - neighbor:i + neighbor + 1,j - neighbor:j + neighbor + 1] = change[:,:]
+
+    return newImage
+
+
+def calcularGrupo(imageValue, centroids):
+    diferences = [0 for i in range (0,len(centroids))]
+
+    for i in range  (0, len(centroids)):
+        diferences[i] = np.absolute(imageValue - centroids[i])
+
+
+    index = diferences.index(min(diferences))
+
+    return index
+
+
+def calcularCentroidesNuevos(image, centroids):
+    groupsImage = image.copy()
+    rows, columns = image.shape
+    groupsToNewCentroids = [[] for i in range (len(centroids))]
+
+    for i in range (0, rows):
+        for j in range (0, columns):
+            groupsImage[i][j]=calcularGrupo(image[i][j], centroids)
+            groupsToNewCentroids[groupsImage[i][j]].append(image[i][j])
+
+
+
+    newCentroids = [0 for i in range (0,len(centroids))]
+
+    for i in range(0, len(centroids)):
+        try:
+            newCentroids[i] = (int(sum(groupsToNewCentroids[i]) / len(groupsToNewCentroids[i])))
+        except(ZeroDivisionError):
+            newCentroids[i] = (int(sum(groupsToNewCentroids[i])))
+
+    print(newCentroids) 
+    state = newCentroids!=centroids
+
+    return state,  newCentroids, groupsToNewCentroids, groupsImage
+
+
+def kmeansColors(image, centroids):   
+    state, newCentroids, groups, groupsMatrix = calcularCentroidesNuevos(image, centroids)
+    print("entro")
+    while state:
+        state, newCentroids, groups, groupsMatrix = calcularCentroidesNuevos(image, newCentroids)        
+
+    print("terminooo")
+
+    rows, columns = groupsMatrix.shape
+    colorImage = [0]*len(groupsMatrix)
+
+    for i in range (len(groupsMatrix)):
+        colorImage[i] = [0]*len(groupsMatrix[0])
+        for j in range (len(groupsMatrix[0])):
+            colorImage[i][j] = [0,0,0]
+
+    for i in range(0, rows):
+        for j in range (0, columns):
+            for k in range (0, len(newCentroids)):
+                if (groupsMatrix[i][j]==newCentroids.index(newCentroids[k])):
+                    colorImage[i][j]= rgbList[k]
+
+
+    return colorImage
+
+
+def kmeansGrays(image, centroids):   
+    state, newCentroids, groups, groupsMatrix = calcularCentroidesNuevos(image, centroids)
+    print("entro")
+    while state:
+        state, newCentroids, groups, groupsMatrix = calcularCentroidesNuevos(image, newCentroids)        
+
+    print("terminooo")
+
+    rows, columns = groupsMatrix.shape
+
+    for i in range(0, rows):
+        for j in range (0, columns):
+            for k in range (0, len(newCentroids)):
+                if (groupsMatrix[i][j]==newCentroids.index(newCentroids[k])):
+                    groupsMatrix[i][j]= neighbors[k]
+
+    return groupsMatrix
+
+
+
+def showOneColor(image, group):
+    colorImage  = np.copy(image)
+    background= [255,255,255]
+    groupColor = rgbList[group]
+
+    if (groupColor==background):
+        background=[0,0,0]
+
+    for i in range(0, len(image)):
+        for j in range (0, len(image[0])):
+            print(image[i][j])
+            if ( not np.array_equiv(image[i][j], groupColor)):
+                colorImage[i][j] = background
+
+    return colorImage
+
 

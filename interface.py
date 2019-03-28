@@ -1,6 +1,7 @@
 import tkinter as tk 
 from tkinter import ttk
 from tkinter import filedialog
+from tkinter import simpledialog
 from tkinter import messagebox
 from matplotlib import pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
@@ -29,7 +30,6 @@ def showOriginalImage(RefDs):
 	imagesDicom.draw()
 	imagesDicom.get_tk_widget().pack(padx=2,pady= 2, side = tk.RIGHT)
 
-
 def showFiletredImage(RefDs):
 	global modifiedImage
 	modifiedImage = RefDs
@@ -40,9 +40,6 @@ def showFiletredImage(RefDs):
 	imagesFilteredDicom = FigureCanvasTkAgg(f, master=frameR2)
 	imagesFilteredDicom.draw()
 	imagesFilteredDicom.get_tk_widget().pack(padx=2,pady= 2, side = tk.RIGHT)
-
-
-
 
 def accessImages(num):
 	RefDs = pydicom.dcmread(lstFilesDCM[num-1])
@@ -65,8 +62,6 @@ def accessImages(num):
 
 	showOriginalImage(RefDs)
 
-
-
 def prepareDicoms(pathDicom):
 	lstFilesDCM.clear()
 	inext.config(text = " 0 ")
@@ -76,7 +71,6 @@ def prepareDicoms(pathDicom):
 	            lstFilesDCM.append(os.path.join(dirName,filename))
 	nextI()
 	
-
 def nextI():
 	try:
 		for widget in frameR2.winfo_children():
@@ -88,8 +82,6 @@ def nextI():
 		accessImages(num)
 	except IndexError:
 		messagebox.showerror("Warning", "No ha seleccionado una carpeta de imagenes")
-
-
 
 def beforeI():
 	try:
@@ -103,17 +95,11 @@ def beforeI():
 	except IndexError:
 		messagebox.showerror("Warning", "No ha seleccionado una carpeta de imagenes")
 
-
 def folderFinder():
 	folder = filedialog.askdirectory()
 	prepareDicoms(folder)
 
-
-#def imageFinder():
-#	imageName = tk.filedialog.askopenfilename()
-#	imageDicom = pydicom.dcmread(imageName)
 	
-
 #////////////////FUNTIONS////////////////////
 
 def validationKernelFilterAndSize():
@@ -125,6 +111,7 @@ def validationKernelFilterAndSize():
 	imageFilter = filterSelector.get()
 	kernelSize = kernelSelector.get()
 	imageType = imageSelector.get()
+	shape = shapeSelector.get()
 
 	if (imageType == "Filtrada" and np.amax(modifiedImage) != 0):
 		image = modifiedImage
@@ -167,14 +154,32 @@ def validationKernelFilterAndSize():
 		neighbors = validationKernelSize()
 		showFiletredImage(funciones.sobel(image, neighbors))
 	elif (imageFilter == "Otsu"):
-		showFiletredImage(np.copy(funciones.thresholding(image)))
+		showFiletredImage(funciones.thresholding(image))
+	elif(imageFilter == "Erosion" and shape == "Equis"):
+		showFiletredImage(funciones.erosion(image, equis))
+	elif(imageFilter == "Erosion" and shape == "Cruz"):
+		showFiletredImage(funciones.erosion(image, cruz))
+	elif(imageFilter == "Erosion" and shape == "Completa"):
+		showFiletredImage(funciones.erosion(image, full))
+	elif(imageFilter == "Dilatacion" and shape == "Equis"):
+		showFiletredImage(funciones.dilatation(image, equis))
+	elif(imageFilter == "Dilatacion" and shape == "Cruz"):
+		showFiletredImage(funciones.dilatation(image, cruz))
+	elif(imageFilter == "Dilatacion" and shape == "Completa"):
+		showFiletredImage(funciones.dilatation(image, full))
+	elif (imageFilter == "K-Means Color"):
+		centroids = centroidsKmeans()
+		showFiletredImage(funciones.kmeansColors(image, centroids))
+	elif (imageFilter == "K-Means Grises"):
+		centroids = centroidsKmeans()
+		showFiletredImage(funciones.kmeansGrays(image, centroids))
+	elif (imageFilter=="E-D"):
+		showFiletredImage(applyDifference(image))
 	else:
 		messagebox.showinfo("Warning", "Lo sentimos.. :( \n No esta disponible la opcion aun")
 	
 	#except IndexError:
 	#	messagebox.showerror("Warning", "Algo ha salido mal")
-
-
 
 def validationKernelSize():
 	kernelSize = kernelSelector.get()
@@ -192,68 +197,87 @@ def validationKernelSize():
 		return 9
 	elif (kernelSize == "15x15"):
 		return 11
-	
+
+def validationColorGroup():
+	colorGroup = colorSelector.get()
+	if (colorGroup == "Grupo 0"):
+		return 0
+	elif (colorGroup == "Grupo 1"):
+		return 1
+	elif (colorGroup == "Grupo 2"):
+		return 2
+	elif (colorGroup == "Grupo 3"):
+		return 3
+	elif (colorGroup == "Grupo 4"):
+		return 4
+	elif (colorGroup == "Grupo 5"):
+		return 5
+	elif (colorGroup == "Grupo 6"):
+		return 6
+	elif (colorGroup == "Grupo 7"):
+		return 7
 
 
-def histogram():
-	#try:
+def kmeansSeparation():
 	global modifiedImage
-	image = np.zeros((512,512))
+	
+	indexColor = validationColorGroup()
 	imageType = imageSelector.get()
 
-	if (imageType == "Filtrada" and np.amax(modifiedImage)!= 0):
-		image = modifiedImage
+	if (imageType == "Filtrada"):
+		image = np.copy(modifiedImage)
 	else:
+		messagebox.showinfo("Warning", "Primero filtre la imagen")
 		num = int(inext.cget("text"))
 		RefDs = pydicom.dcmread(lstFilesDCM[num])
 		image = RefDs.pixel_array
 
-	histogram = funciones.histogramNormalised(image)
-	plt.plot(histogram)
+	kmeanscolors = funciones.showOneColor(image,indexColor)
+	#showFiletredImage(kmeanscolors)
+	plt.imshow(kmeanscolors)
 	plt.show()
-	#except IndexError:
-	#	messagebox.showerror("Warning", "No ha seleccionado una carpeta de imagenes")
 
 
-def sobel():
-	global modifiedImage
+def applyDifference(image):
+    erosion = np.copy(funciones.erosion(image, full))
+    dilatation = np.copy(funciones.dilatation(image, full))
+    filtered = np.copy( dilatation - erosion )
+
+    return filtered
+
+
+def centroidsKmeans():
+    answer = tk.simpledialog.askstring("Entrada", "Numero de centroides",parent=root)
+    centroids = [0]*int(answer)
+    tones = [0]*int(answer)
+    if int(answer) < 0 or answer is None:
+        tk.messagebox.showinfo("Error", "Ingrese  la cantidad de centroides")
+        return 
+    for i in range(0,int(answer)):
+        data = tk.simpledialog.askstring("Entrada", "Centroide numero "+str(i)+":", parent=root)
+        centroids[i] = int(data)
+
+    return centroids
+
+
+def histogram():
 	try:
+		global modifiedImage
 		image = np.zeros((512,512))
 		imageType = imageSelector.get()
 
-		if (imageType == "Filtrada"):
+		if (imageType == "Filtrada" and np.amax(modifiedImage)!= 0):
 			image = modifiedImage
 		else:
 			num = int(inext.cget("text"))
 			RefDs = pydicom.dcmread(lstFilesDCM[num])
 			image = RefDs.pixel_array
 
-		neighbors = validationKernelSize()
-		modifiedImage = funciones.sobel(image, neighbors)
-		showFiletredImage(modifiedImage)
+		histogram = funciones.histogramNormalised(image)
+		plt.plot(histogram)
+		plt.show()
 	except IndexError:
 		messagebox.showerror("Warning", "No ha seleccionado una carpeta de imagenes")
-
-
-
-def otsu():
-	global modifiedImage
-	image = np.zeros((512,512))
-	imageType = imageSelector.get()
-
-	if (imageType == "Filtrada"):
-		image = modifiedImage
-	else:
-		num = int(inext.cget("text"))
-		RefDs = pydicom.dcmread(lstFilesDCM[num])
-		image = RefDs.pixel_array
-
-	threshold = funciones.thresholding(image)
-	showFiletredImage(threshold)
-
-
-
-
 
 
 #///////////////////MATRIX/////////////////////
@@ -315,6 +339,22 @@ median13x13 = 9
 median15x15 = 11
 
 
+#///////////////SHAPES EROSION AN DILATATION//////////////
+
+full = np.array([[1,1,1],
+						[1,1,1],
+						[1,1,1]])
+
+equis = np.array([[1,0,1],
+						[1,1,1],
+						[1,0,1]])
+
+cruz = np.array([[0,1,0],
+						[1,1,1],
+						[0,1,0]])
+
+
+
 #////////////////INTERFACE///////////////////
 
 root = tk.Tk()
@@ -325,7 +365,7 @@ root.geometry("1000x500")
 
 
 #Frames
-frameL = tk.Frame(root,bg= "thistle1")
+frameL = tk.Frame(root,bg= "thistle1", width = 100, height=250)
 frameR = tk.Frame(root,bg= "thistle1", width = 250, height=250 )
 frameR1 = tk.Frame(root,bg= "thistle1", width = 250, height=250 )
 frameR2 = tk.Frame(root,bg= "thistle1")
@@ -334,8 +374,10 @@ frameNB = tk.Frame(frameL,bg= "thistle1")
 
 #Valores de los Combobox
 kernelSelectorValues = ["3x3","5x5","7x7", "9x9", "11x11", "13x13", "15x15"]
-filterSelectorValues = ["Gaussiano","Promedio","Rayleigh","Mediana", "Sobel", "Otsu", "K-Means"]
+filterSelectorValues = ["Gaussiano","Promedio","Mediana", "Sobel", "Otsu", "K-Means Color", "K-Means Grises", "Erosion", "Dilatacion", "E-D"]
+shapeSelectorValues = ["Cruz", "Equis", "Completa"]
 imageSelectorValues = ["Original", "Filtrada"]
+colorSelectorValues = ["Grupo 0", "Grupo 1", "Grupo 2", "Grupo 3", "Grupo 4", "Grupo 5", "Grupo 6", "Grupo 7"]
 
 #combobox style
 comboStyle = ttk.Style()
@@ -345,9 +387,9 @@ comboStyle.theme_use('comboStyle')
 #buttons
 histogramButton = tk.Button(frameL,height=1 ,width=16 ,text="Histograma", bg= "gray58", fg = "white", font = "Arial 10", command = histogram)
 #sobelButton = tk.Button(frameL,height=1 ,width=16 ,text="Sobel", bg= "gray58", fg = "white", font = "Arial 10", command = sobel)
-#otsuButton = tk.Button(frameL,height=1 ,width=16 ,text="Otsu", bg= "gray58", fg = "white", font = "Arial 10", command = otsu)
+colorButton = tk.Button(frameL,height=1 ,width=16 ,text="Buscar Color", bg= "gray58", fg = "white", font = "Arial 10", command = kmeansSeparation)
 folderSelector = tk.Button(frameL,height=1 ,width=16 ,text="Seleccionar carpeta", bg= "gray58", fg = "white", font = "Arial 10", command = folderFinder)
-aplyFilter = tk.Button(frameL,height=1 ,width=16 ,text="Aplicar Filtro", bg= "gray58", fg = "white", font = "Arial 10", command= validationKernelFilterAndSize)
+aplyFilter = tk.Button(frameL,height=1 ,width=17 ,text="Aplicar Filtro", bg= "gray58", fg = "white", font = "Arial 10", command= validationKernelFilterAndSize)
 nextButton = tk.Button(frameNB,height=1 ,width=8 ,text=">", bg= "gray58", fg = "white", font = "Arial 10 bold", command = nextI)
 beforeButton = tk.Button(frameNB,height=1 ,width=8 ,text="<", bg= "gray58", fg = "white", font = "Arial 10 bold", command = beforeI)
 
@@ -355,18 +397,25 @@ beforeButton = tk.Button(frameNB,height=1 ,width=8 ,text="<", bg= "gray58", fg =
 kernelLabel = tk.Label(frameL, text="Tamano kernel",bg= "thistle1" , fg = "gray40", font = "Arial 10 bold")
 filterLabel = tk.Label(frameL, text="Filtro", bg= "thistle1", fg = "gray40", font = "Arial 10 bold")
 imageLabel = tk.Label(frameL, text="Imagen", bg= "thistle1", fg = "gray40", font = "Arial 10 bold")
+shapeLabel = tk.Label(frameL, text="Forma", bg= "thistle1", fg = "gray40", font = "Arial 10 bold")
 title = tk.Label(frameL,height=3, width=24, text="Procesamiento\nde Imagenes", bg= "thistle1", fg = "gray40", font = "Arial 15 bold")
 inext = tk.Label(frameL, text="0", bg= "thistle1", fg = "gray40", font = "Arial 12 bold")
+colorLabel = tk.Label(frameL, text="Color por Grupo", bg= "thistle1", fg = "gray40", font = "Arial 10 bold")
 #nfoImageDicom = tk.Label(frameR, bg= "thistle1" ,text="Imagen Original", height=20, width=30,  fg = "gray30")
 
 
+
 #comobox
-kernelSelector = ttk.Combobox(frameL,height=2 ,width=15, values = kernelSelectorValues, state = "readonly", font = "Arial 11")
+kernelSelector = ttk.Combobox(frameL,height=2 ,width=16, values = kernelSelectorValues, state = "readonly", font = "Arial 11")
 kernelSelector.current(0)
-filterSelector = ttk.Combobox(frameL,height=2 ,width=15, values = filterSelectorValues, state = "readonly", font = "Arial 11")
+filterSelector = ttk.Combobox(frameL,height=2 ,width=16, values = filterSelectorValues, state = "readonly", font = "Arial 11")
 filterSelector.current(0)
-imageSelector = ttk.Combobox(frameL,height=2 ,width=15, values = imageSelectorValues, state = "readonly", font = "Arial 11")
+imageSelector = ttk.Combobox(frameL,height=2 ,width=16, values = imageSelectorValues, state = "readonly", font = "Arial 11")
 imageSelector.current(0)
+shapeSelector = ttk.Combobox(frameL,height=2 ,width=16, values = shapeSelectorValues, state = "readonly", font = "Arial 11")
+shapeSelector.current(0)
+colorSelector = ttk.Combobox(frameL,height=2 ,width=16, values = colorSelectorValues, state = "readonly", font = "Arial 11")
+colorSelector.current(0)
 
 
 
@@ -374,8 +423,9 @@ imageSelector.current(0)
 
 frameL.pack(side=tk.LEFT)
 #frameR.pack(side=tk.RIGHT)
-frameR1.pack(side=tk.LEFT)
 frameR2.pack(side=tk.LEFT)
+frameR1.pack(side=tk.LEFT)
+
 
 
 title.pack(padx=2,pady= 3,side=tk.TOP)
@@ -383,15 +433,19 @@ folderSelector.pack(padx=2,pady= 3,side=tk.TOP)
 #imageSelector.pack(padx=2,pady= 2,side=tk.TOP)
 histogramButton.pack(padx=2,pady= 10,side=tk.TOP)
 #sobelButton.pack(padx=2,pady= 2,side=tk.TOP)
-#otsuButton.pack(padx=2,pady= 2,side=tk.TOP)
+colorLabel.pack(padx=2,pady= 3,side=tk.TOP)
+colorSelector.pack(padx=2,pady= 3,side=tk.TOP)
+colorButton.pack(padx=2,pady= 2,side=tk.TOP)
 kernelLabel.pack(padx=2,pady= 3,side=tk.TOP)
 kernelSelector.pack(padx=2,pady= 3,side=tk.TOP)
 filterLabel.pack(padx=2,pady= 3,side=tk.TOP)
 filterSelector.pack(padx=2,pady= 3,side=tk.TOP)
 imageLabel.pack(padx=2,pady= 3,side=tk.TOP)
 imageSelector.pack(padx=2,pady=3,side=tk.TOP)
+shapeLabel.pack(padx=2,pady= 3,side=tk.TOP)
+shapeSelector.pack(padx=2,pady=3,side=tk.TOP)
 aplyFilter.pack(padx=2,pady= 12,side=tk.TOP)
-infoImageDicom.pack(padx=15,pady= 15,side=tk.RIGHT)
+#infoImageDicom.pack(padx=15,pady= 15,side=tk.RIGHT)
 
 #botones de seguir
 frameNB.pack(padx=2,pady= 10,side=tk.BOTTOM)
